@@ -19,11 +19,15 @@ export default function Home() {
             <p className="eyebrow"><span /> Evento científico · cultural · 2026</p>
             <div className="edition">XLVI</div>
             <h1 id="hero-title">Evento del<br />Químico</h1>
-            <p className="hero-tagline">Ciencia que conecta saberes</p>
+            <p className="hero-tagline">
+              Química que evoluciona, futuro que se construye
+            </p>
             <p className="hero-intro">{content.hero.description}</p>
             <div className="hero-actions">
               <a className="button button-primary" href="#programa">Explorar programa <ChevronRight size={18} /></a>
-              <a className="button button-ghost" href="#modelo">Conoce el nuevo modelo</a>
+              <a className="button button-ghost" href="#evento">
+                Conoce el evento
+              </a>
             </div>
           </div>
 
@@ -52,7 +56,7 @@ export default function Home() {
         <div>CIENCIA <b>✦</b> COMPETENCIAS <b>✦</b> COMUNIDAD <b>✦</b> INNOVACIÓN <b>✦</b> CIENCIA <b>✦</b> COMPETENCIAS</div>
       </div>
 
-      <section className="section model-section" id="modelo" aria-labelledby="model-title">
+      <section className="section model-section" id="evento" aria-labelledby="event-title">
         <div className="container">
           <div className="section-heading split-heading">
             <div>

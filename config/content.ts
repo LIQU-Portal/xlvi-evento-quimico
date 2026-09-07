@@ -7,10 +7,10 @@ export type ProgramItem = {
 export const content = {
   event: { date: "20 al 23 de Octubre 2026 ", venue: "CUCEI · Universidad de Guadalajara" },
   hero: {
-    description: "Una semana para explorar la química desde la nueva malla curricular: conocimiento disciplinar, práctica y competencias que se encuentran para transformar nuestro entorno.",
+    description: "Un espacio para descubrir cómo evoluciona la química, cómo se transforma la profesión y qué caminos pueden construir las nuevas generaciones.",
   },
   model: {
-    intro: "Este semestre comienza una nueva etapa. El modelo mixto basado en competencias integra el saber científico con la capacidad de actuar, colaborar y generar impacto.",
+    intro: "El Evento del Químico 2026 busca convertirse en un espacio para reflexionar sobre cómo evolucionan la formación y el ejercicio profesional de la química. A través de conferencias, paneles, foros, actividades con estudiantes y talleres, se propone abordar de manera integrada los conocimientos, habilidades, experiencias y retos que hoy forman parte del desarrollo profesional de un profesional de la química.",
     competencies: [
       { title: "Fundamento científico", description: "Integra conceptos químicos para comprender, argumentar y explicar fenómenos." },
       { title: "Práctica y resolución", description: "Aplica métodos, instrumentos y criterio para abordar problemas reales." },
