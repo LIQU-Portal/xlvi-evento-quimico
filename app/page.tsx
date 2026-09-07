@@ -19,11 +19,15 @@ export default function Home() {
             <p className="eyebrow"><span /> Evento científico · cultural · 2026</p>
             <div className="edition">XLVI</div>
             <h1 id="hero-title">Evento del<br />Químico</h1>
-            <p className="hero-tagline">Ciencia que conecta saberes</p>
+            <p className="hero-tagline">
+              Química que evoluciona, futuro que se construye
+            </p>
             <p className="hero-intro">{content.hero.description}</p>
             <div className="hero-actions">
               <a className="button button-primary" href="#programa">Explorar programa <ChevronRight size={18} /></a>
-              <a className="button button-ghost" href="#modelo">Conoce el nuevo modelo</a>
+              <a className="button button-ghost" href="#evento">
+                Conoce el evento
+              </a>
             </div>
           </div>
 
@@ -49,14 +53,17 @@ export default function Home() {
       </section>
 
       <div className="ticker" aria-label="Ejes del evento">
-        <div>CIENCIA <b>✦</b> COMPETENCIAS <b>✦</b> COMUNIDAD <b>✦</b> INNOVACIÓN <b>✦</b> CIENCIA <b>✦</b> COMPETENCIAS</div>
+        <div>
+            QUÍMICA <b>✦</b> FORMACIÓN <b>✦</b> PROFESIÓN <b>✦</b>
+            INNOVACIÓN <b>✦</b> COMUNIDAD <b>✦</b> FUTURO
+        </div>  
       </div>
 
-      <section className="section model-section" id="modelo" aria-labelledby="model-title">
+      <section className="section model-section" id="evento" aria-labelledby="event-title">
         <div className="container">
           <div className="section-heading split-heading">
             <div>
-              <p className="section-index">02 — Una nueva forma de aprender</p>
+              <p className="section-index">02 — Un encuentro para pensar la química</p>
               <h2 id="model-title">Conocimiento que<br /><em>se pone en práctica.</em></h2>
             </div>
             <div>
