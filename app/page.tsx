@@ -60,7 +60,7 @@ export default function Home() {
         <div className="container">
           <div className="section-heading split-heading">
             <div>
-              <p className="section-index">02 — Una nueva forma de aprender</p>
+              <p className="section-index">02 — Un encuentro para pensar la química</p>
               <h2 id="model-title">Conocimiento que<br /><em>se pone en práctica.</em></h2>
             </div>
             <div>
