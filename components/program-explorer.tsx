@@ -20,7 +20,7 @@ export function ProgramExplorer({ items }: { items: ProgramItem[] }) {
       <div className="program-list" aria-live="polite">
         {visible.map((item) => (
           <article className="program-item" key={item.id}>
-            <div className="program-time"><strong>{item.time}</strong><span>{item.day}</span><small>Fecha por confirmar</small></div>
+            <div className="program-time"><strong>{item.time}</strong><span>{item.day}</span><small>{item.date || "Fecha por confirmar"}</small></div>
             <div className="program-main">
               <span className={`type-pill type-${item.type.toLowerCase()}`}>{item.type}</span>
               <h3>{item.title}</h3>
@@ -31,7 +31,9 @@ export function ProgramExplorer({ items }: { items: ProgramItem[] }) {
                 {item.capacity && <span><UsersRound /> {item.capacity}</span>}
               </div>
             </div>
-            <span className="status-pill">Provisional</span>
+            <span  className={`status-pill status-${(item.status ?? "Provisional").toLowerCase()}`}>
+              {item.status ?? "Provisional"}
+            </span>
           </article>
         ))}
       </div>
