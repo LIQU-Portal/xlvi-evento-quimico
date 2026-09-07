@@ -1,7 +1,16 @@
 export type ProgramType = "Conferencia" | "Taller" | "Concurso" | "Actividad";
 export type ProgramItem = {
-  id: number; time: string; day: string; type: ProgramType; title: string;
-  description: string; person: string; place: string; capacity?: string;
+  id: number;
+  date?: string;
+  time: string;
+  day: string;
+  type: ProgramType;
+  title: string;
+  description: string;
+  person: string;
+  place: string;
+  capacity?: string;
+  status?: "Provisional" | "Confirmado";
 };
 
 export const content = {
