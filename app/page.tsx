@@ -53,7 +53,10 @@ export default function Home() {
       </section>
 
       <div className="ticker" aria-label="Ejes del evento">
-        <div>CIENCIA <b>✦</b> COMPETENCIAS <b>✦</b> COMUNIDAD <b>✦</b> INNOVACIÓN <b>✦</b> CIENCIA <b>✦</b> COMPETENCIAS</div>
+        <div>
+            QUÍMICA <b>✦</b> FORMACIÓN <b>✦</b> PROFESIÓN <b>✦</b>
+            INNOVACIÓN <b>✦</b> COMUNIDAD <b>✦</b> FUTURO
+        </div>  
       </div>
 
       <section className="section model-section" id="evento" aria-labelledby="event-title">
