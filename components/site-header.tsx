@@ -25,7 +25,18 @@ export function SiteHeader() {
           {open ? <X /> : <Menu />}
         </button>
         <nav id="main-menu" className={open ? "nav-links open" : "nav-links"} aria-label="Navegación principal">
-          {links.map(([label, href]) => <a key={href} href={href} onClick={() => setOpen(false)}>{label}</a>)}
+          {links.map(([label, href]) =>
+            <a key={href} href={href} onClick={() => setOpen(false)}>
+              {label}
+            </a>
+          )}
+          <a
+            className="account-link"
+            href="/mi-cuenta"
+            onClick={() => setOpen(false)}
+            >
+              Mi cuenta
+          </a>
         </nav>
       </div>
     </header>

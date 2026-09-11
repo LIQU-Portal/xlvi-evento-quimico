@@ -36,6 +36,20 @@ button { font: inherit; }
 .brand img { width: 42px; height: 42px; }
 .brand b { font-family: var(--font-title); margin-right: 7px; letter-spacing: .04em; }
 .nav-links { display: flex; align-items: center; gap: 34px; font-size: .85rem; font-weight: 600; }
+.nav-links .account-link {
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  opacity: 1;
+}
+
+.nav-links .account-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.nav-links .account-link::after {
+  display: none;
+}
 .nav-links a { position: relative; opacity: .86; transition: opacity .2s; }
 .nav-links a::after { content: ""; position: absolute; left: 0; bottom: -8px; width: 100%; height: 2px; background: var(--cyan); transform: scaleX(0); transform-origin: left; transition: transform .2s; }
 .nav-links a:hover { opacity: 1; }

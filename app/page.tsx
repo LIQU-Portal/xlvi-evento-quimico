@@ -6,6 +6,7 @@ import { ProgramExplorer } from "@/components/program-explorer";
 import { Beaker, CalendarDays, ChevronRight, FlaskConical, MapPin, Network, Sparkles } from "lucide-react";
 import { content } from "@/config/content";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export default async function Home() {
