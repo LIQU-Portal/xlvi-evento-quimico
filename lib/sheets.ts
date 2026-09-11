@@ -56,7 +56,7 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
 
   try {
     const response = await fetch(url, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
 
     if (!response.ok) {

@@ -72,7 +72,7 @@ export default async function Home() {
             </div>
             <div>
               <p className="lead">{content.model.intro}</p>
-              <span className="provisional-note">Química que evoluciona, futuro que se construye.</span>
+              <span className="provisional-note"></span>
             </div>
           </div>
           <div className="competency-grid">
