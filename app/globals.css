@@ -186,3 +186,139 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
   .reveal { animation: rise .7s ease-out both; }
   @keyframes rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 }
+
+.event-logo-panel {
+  width: min(100%, 680px);
+  margin: 28px 0 22px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 28px;
+  background: transparent;
+  box-shadow: 0 26px 65px rgba(5, 10, 45, 0.3);
+}
+
+.event-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: none;
+}
+
+.mascot-scene {
+  position: relative;
+  margin-top: 58px;
+  padding: clamp(18px, 4vw, 42px);
+  overflow: hidden;
+  border: 1px solid rgba(108, 43, 217, 0.16);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 15% 25%, rgba(22, 180, 166, 0.16), transparent 28%),
+    radial-gradient(circle at 85% 20%, rgba(214, 51, 132, 0.14), transparent 30%),
+    linear-gradient(135deg, #f8f7ff, #eefaff);
+}
+
+.mascot-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image: radial-gradient(circle, rgba(108, 43, 217, 0.3) 2px, transparent 2px);
+  background-size: 38px 38px;
+  mask-image: linear-gradient(to bottom, black, transparent);
+}
+
+.mascot-duo {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 540px);
+  margin: 0 auto;
+}
+
+.mascot-duo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 26px;
+  box-shadow: 0 24px 50px rgba(13, 27, 61, 0.24);
+}
+
+.mascot-names {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 16px;
+  color: var(--navy);
+  font-family: var(--font-title);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mascot-names span:first-child {
+  text-align: left;
+  padding-left: 18%;
+}
+
+.mascot-names span:last-child {
+  text-align: right;
+  padding-right: 18%;
+}
+
+.mascot-copy {
+  position: relative;
+  z-index: 2;
+  padding: 24px 12px 4px;
+  text-align: center;
+}
+
+.mascot-copy p {
+  margin: 0 auto;
+  max-width: 340px;
+  color: var(--navy);
+  font-family: var(--font-title);
+  font-size: clamp(1.2rem, 2vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mascot-duo {
+    animation: float-duo 6.4s ease-in-out infinite;
+  }
+
+  @keyframes float-duo {
+    0%, 100% { transform: translateY(4px); }
+    50% { transform: translateY(-8px); }
+  }
+}
+
+@media (max-width: 720px) {
+  .event-logo-panel {
+    width: 100%;
+    margin-top: 24px;
+    padding: 10px;
+    border-radius: 20px;
+  }
+
+  .mascot-scene {
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .mascot-copy {
+    padding: 20px 8px 8px;
+  }
+
+  .mascot-duo img {
+    border-radius: 16px;
+  }
+
+  .mascot-names {
+    font-size: 0.82rem;
+  }
+
+  .mascot-names span:first-child { padding-left: 10%; }
+  .mascot-names span:last-child { padding-right: 10%; }
+}

@@ -18,13 +18,34 @@ export const content = {
   hero: {
     description: "Un espacio para descubrir cómo evoluciona la química, cómo se transforma la profesión y qué caminos pueden construir las nuevas generaciones.",
   },
-  model: {
-    intro: "El Evento del Químico 2026 busca convertirse en un espacio para reflexionar sobre cómo evolucionan la formación y el ejercicio profesional de la química. A través de conferencias, paneles, foros, actividades con estudiantes y talleres, se propone abordar de manera integrada los conocimientos, habilidades, experiencias y retos que hoy forman parte del desarrollo profesional de un profesional de la química.",
-    competencies: [
-      { title: "Fundamento científico", description: "Integra conceptos químicos para comprender, argumentar y explicar fenómenos." },
-      { title: "Práctica y resolución", description: "Aplica métodos, instrumentos y criterio para abordar problemas reales." },
-      { title: "Comunicación y colaboración", description: "Construye soluciones con otras personas y comunica evidencia con claridad." },
-      { title: "Responsabilidad e impacto", description: "Evalúa decisiones desde la seguridad, la ética y la sostenibilidad." },
+  overview: {
+    intro:
+      "El Evento del Químico 2026 será un espacio para reflexionar sobre cómo evolucionan la formación y el ejercicio profesional de la química. Conferencias, paneles, foros, talleres y actividades estudiantiles reunirán conocimientos, experiencias y retos que hoy forman parte del desarrollo de quienes construyen el futuro de la química.",
+    highlights: [
+      {
+        title: "Conversaciones que inspiran",
+        description:
+          "Conferencias, paneles y foros para conocer ideas, experiencias y perspectivas de la profesión.",
+        label: "Conferencias · paneles · foros",
+      },
+      {
+        title: "Química en acción",
+        description:
+          "Talleres y experiencias prácticas para explorar herramientas, procesos y áreas de aplicación.",
+        label: "Talleres · experiencias",
+      },
+      {
+        title: "Talento y comunidad",
+        description:
+          "Concursos y actividades estudiantiles para compartir proyectos, creatividad y colaboración.",
+        label: "Concursos · comunidad",
+      },
+      {
+        title: "Trayectorias y futuro",
+        description:
+          "Encuentros para descubrir caminos en la investigación, la industria y el desarrollo profesional.",
+        label: "Profesión · investigación · industria",
+      },
     ],
   },
   program: [
