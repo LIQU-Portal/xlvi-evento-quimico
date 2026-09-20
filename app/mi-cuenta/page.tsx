@@ -14,6 +14,7 @@ import {
   type EventRegistration,
 } from "@/lib/registration";
 import { getParticipantActivityEnrollments } from "@/lib/activity-registration";
+import { isActivityAdmin } from "@/lib/activity-admin";
 
 function RegistrationDetails({
   registration,
@@ -77,6 +78,7 @@ export default async function MiCuentaPage() {
     getParticipantActivityEnrollments(email),
   ]);
   const role = lookup.registration?.role ?? (lookup.isStaff ? "Staff" : accountType);
+  const canAdministerActivities = isActivityAdmin(email);
 
   return (
     <main className="account-page">
@@ -90,6 +92,9 @@ export default async function MiCuentaPage() {
           </Link>
 
           <div className="account-header-actions">
+            {canAdministerActivities && (
+              <Link href="/administracion/inscripciones">Administración</Link>
+            )}
             <Link href="/">Volver al sitio</Link>
             <form
               action={async () => {

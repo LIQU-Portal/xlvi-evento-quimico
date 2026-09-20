@@ -227,3 +227,67 @@ BEGIN
       selected_activity.capacity - selected_activity.reserved_count;
 END;
 $$;
+
+-- statement-breakpoint
+
+CREATE OR REPLACE FUNCTION admin_cancel_activity_enrollment(
+  requested_enrollment_id BIGINT,
+  requested_cancelled_by TEXT,
+  requested_reason TEXT
+)
+RETURNS TABLE (outcome TEXT, remaining_capacity INTEGER)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  selected_activity activities%ROWTYPE;
+  selected_enrollment activity_enrollments%ROWTYPE;
+  selected_activity_id INTEGER;
+BEGIN
+  SELECT activity_id
+    INTO selected_activity_id
+    FROM activity_enrollments
+    WHERE id = requested_enrollment_id;
+
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT 'not_found'::TEXT, NULL::INTEGER;
+    RETURN;
+  END IF;
+
+  SELECT *
+    INTO selected_activity
+    FROM activities
+    WHERE id = selected_activity_id
+    FOR UPDATE;
+
+  SELECT *
+    INTO selected_enrollment
+    FROM activity_enrollments
+    WHERE id = requested_enrollment_id
+    FOR UPDATE;
+
+  IF selected_enrollment.status = 'Cancelado' THEN
+    RETURN QUERY
+      SELECT 'already_cancelled'::TEXT,
+        selected_activity.capacity - selected_activity.reserved_count;
+    RETURN;
+  END IF;
+
+  UPDATE activity_enrollments
+    SET status = 'Cancelado',
+        updated_at = NOW(),
+        cancelled_at = NOW(),
+        cancelled_by = LOWER(requested_cancelled_by),
+        cancellation_reason = requested_reason
+    WHERE id = requested_enrollment_id;
+
+  UPDATE activities
+    SET reserved_count = GREATEST(reserved_count - 1, 0),
+        updated_at = NOW()
+    WHERE id = selected_activity_id
+    RETURNING * INTO selected_activity;
+
+  RETURN QUERY
+    SELECT 'cancelled'::TEXT,
+      selected_activity.capacity - selected_activity.reserved_count;
+END;
+$$;
