@@ -277,10 +277,9 @@ function sendConfirmationEmail_(registration, qrBlob) {
 }
 
 function createQrToken_(participantId) {
-  const properties = PropertiesService.getScriptProperties();
-  const secret =
-    properties.getProperty("REGISTRATION_QR_SECRET") ||
-    properties.getProperty("REGISTRATION_API_SECRET");
+  const secret = PropertiesService.getScriptProperties().getProperty(
+    "REGISTRATION_QR_SECRET",
+  );
 
   if (!secret) throw new Error("Falta configurar el secreto para firmar los QR.");
 
