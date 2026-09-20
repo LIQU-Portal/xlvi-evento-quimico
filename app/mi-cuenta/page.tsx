@@ -1,4 +1,4 @@
-import { BadgeCheck, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { BadgeCheck, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -11,57 +11,9 @@ import { RegistrationForm } from "@/components/registration-form";
 import {
   getAccountType,
   lookupRegistration,
-  type EventRegistration,
 } from "@/lib/registration";
 import { getParticipantActivityEnrollments } from "@/lib/activity-registration";
 import { isActivityAdmin } from "@/lib/activity-admin";
-
-function RegistrationDetails({
-  registration,
-}: {
-  registration: EventRegistration;
-}) {
-  return (
-    <div className="registration-confirmation">
-      <span className="registration-status">
-        <BadgeCheck size={16} /> Registro confirmado
-      </span>
-      <h2>Ya formas parte del evento</h2>
-      <p>
-        Conserva tu ID. Estará asociado con tus inscripciones y constancia.
-      </p>
-      <dl className="registration-summary">
-        <div>
-          <dt>ID de participante</dt>
-          <dd>{registration.id}</dd>
-        </div>
-        <div>
-          <dt>Rol reconocido</dt>
-          <dd>{registration.role}</dd>
-        </div>
-        <div>
-          <dt>Estado</dt>
-          <dd>{registration.status}</dd>
-        </div>
-        <div>
-          <dt>Carrera</dt>
-          <dd>{registration.affiliation}</dd>
-        </div>
-      </dl>
-      <ParticipantQr
-        participantId={registration.id}
-        token={registration.qrToken}
-      />
-      {registration.confirmationEmailSentAt ? (
-        <p className="confirmation-email-sent">
-          Correo de confirmación enviado correctamente.
-        </p>
-      ) : (
-        <ConfirmationEmailButton />
-      )}
-    </div>
-  );
-}
 
 export default async function MiCuentaPage() {
   const session = await auth();
@@ -77,8 +29,8 @@ export default async function MiCuentaPage() {
     lookupRegistration(email),
     getParticipantActivityEnrollments(email),
   ]);
-  const role = lookup.registration?.role ?? (lookup.isStaff ? "Staff" : accountType);
   const canAdministerActivities = isActivityAdmin(email);
+  const firstName = name.split(/\s+/)[0];
 
   return (
     <main className="account-page">
@@ -88,7 +40,13 @@ export default async function MiCuentaPage() {
       <div className="account-container">
         <header className="account-header">
           <Link href="/" className="account-brand">
-            <span>XLVI</span> Evento del Químico
+            <Image
+              src="/branding/logo-evento-2026.png"
+              alt="XLVI Evento del Químico 2026"
+              width={1776}
+              height={888}
+              priority
+            />
           </Link>
 
           <div className="account-header-actions">
@@ -111,74 +69,52 @@ export default async function MiCuentaPage() {
 
         <section className="account-intro" aria-labelledby="account-title">
           <div className="account-intro-copy">
-            <p>Área personal</p>
-            <h1 id="account-title">Mi cuenta</h1>
-            <span>Registro e identidad institucional para el evento 2026.</span>
-          </div>
-
-          <div className="account-logo-panel">
-            <Image
-              src="/branding/logo-evento-2026.png"
-              alt="XLVI Evento del Químico 2026. Química que evoluciona, futuro que se construye"
-              width={1776}
-              height={888}
-              sizes="(max-width: 800px) 92vw, 520px"
-              priority
-            />
+            <p>Área personal · Mi cuenta</p>
+            <h1 id="account-title">Hola, {firstName}</h1>
+            <span>{email}</span>
           </div>
         </section>
 
-        <div className="account-grid">
-          <aside className="profile-card">
-            <div className="profile-icon">
-              <UserRound />
-            </div>
-            <span>Cuenta institucional</span>
-            <h2>{name}</h2>
-            <p>{email}</p>
+        <dl className="account-summary-strip">
+          <div><dt>Tipo de cuenta</dt><dd>{accountType}</dd></div>
+          <div>
+            <dt>Registro</dt>
+            <dd className={lookup.registration ? "is-confirmed" : "is-pending"}>
+              {lookup.registration ? "Confirmado" : "Pendiente"}
+            </dd>
+          </div>
+          <div><dt>Carrera</dt><dd>{lookup.registration?.affiliation ?? "Por confirmar"}</dd></div>
+        </dl>
 
-            <dl>
-              <div>
-                <dt>Tipo de cuenta</dt>
-                <dd>{accountType}</dd>
+        {lookup.registration ? (
+          <div className="account-dashboard">
+            <section className="account-access-card" aria-labelledby="account-access-title">
+              <span className="registration-status"><BadgeCheck size={16} /> Registro confirmado</span>
+              <h2 id="account-access-title">Tu acceso</h2>
+              <div className="account-participant-id">
+                <span>ID de participante</span>
+                <strong>{lookup.registration.id}</strong>
               </div>
-              <div>
-                <dt>Rol</dt>
-                <dd>{role}</dd>
-              </div>
-              <div>
-                <dt>Registro al evento</dt>
-                <dd>
-                  {lookup.registration ? "Confirmado" : "Pendiente"}
-                </dd>
-              </div>
-            </dl>
+              <ParticipantQr participantId={lookup.registration.id} token={lookup.registration.qrToken} />
+              {lookup.registration.confirmationEmailSentAt ? (
+                <p className="confirmation-email-sent">Confirmación enviada por correo.</p>
+              ) : (
+                <ConfirmationEmailButton />
+              )}
+            </section>
 
-            {role === "Staff" && (
-              <p className="staff-recognition">
-                <ShieldCheck size={18} /> Cuenta reconocida como integrante del
-                staff.
-              </p>
-            )}
-          </aside>
-
-          <section className="registration-card">
-            {lookup.registration ? (
-              <RegistrationDetails registration={lookup.registration} />
-            ) : (
-              <RegistrationForm
-                name={name}
-                email={email}
-                accountType={accountType}
-                serviceAvailable={lookup.state !== "unavailable"}
-                serviceMessage={lookup.message}
-              />
-            )}
+            <AccountActivityEnrollments enrollments={activityEnrollments} />
+          </div>
+        ) : (
+          <section className="registration-card account-registration-pending">
+            <RegistrationForm
+              name={name}
+              email={email}
+              accountType={accountType}
+              serviceAvailable={lookup.state !== "unavailable"}
+              serviceMessage={lookup.message}
+            />
           </section>
-        </div>
-
-        {lookup.registration && (
-          <AccountActivityEnrollments enrollments={activityEnrollments} />
         )}
       </div>
     </main>

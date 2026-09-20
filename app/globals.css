@@ -421,3 +421,80 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
   .admin-table-wrap td { min-width: 0 !important; padding: 9px 0; border: 0; }
   .admin-table-wrap td::before { content: attr(data-label); display: block; margin-bottom: 5px; color: var(--muted); font-size: .58rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 }
+
+/* Navegación con sesión */
+.header-login-form { margin: 0; }
+.header-login-form .account-link { color: white; background: transparent; font: inherit; cursor: pointer; }
+.account-link-user { gap: 9px; padding: 5px 14px 5px 6px !important; }
+.account-avatar { width: 30px; height: 30px; display: grid; place-items: center; overflow: hidden; border-radius: 50%; color: var(--navy-950); background: white; font-size: .66rem; font-weight: 900; letter-spacing: .02em; }
+.account-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Mi cuenta: resumen inmediato y dos columnas */
+.account-brand { width: 176px; height: 54px; }
+.account-brand img { width: 100%; height: 100%; object-fit: contain; object-position: left center; }
+.account-intro { display: block; padding: 38px 0 24px; }
+.account-intro h1 { font-size: clamp(2.7rem, 5vw, 4.8rem); }
+.account-intro-copy > span { max-width: none; margin-top: 10px; overflow-wrap: anywhere; }
+.account-summary-strip { margin: 0 0 20px; display: grid; grid-template-columns: .7fr .7fr 1.6fr; border: 1px solid rgba(18,31,72,.12); border-radius: 20px; background: rgba(255,255,255,.86); box-shadow: 0 16px 44px rgba(26,24,81,.07); backdrop-filter: blur(12px); }
+.account-summary-strip > div { min-width: 0; padding: 18px 22px; border-right: 1px solid var(--line); }
+.account-summary-strip > div:last-child { border-right: 0; }
+.account-summary-strip dt { color: var(--muted); font-size: .59rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.account-summary-strip dd { margin: 7px 0 0; overflow-wrap: anywhere; font-weight: 850; }
+.account-summary-strip .is-confirmed { color: #176b61; }
+.account-summary-strip .is-pending { color: #9b6500; }
+.account-dashboard { display: grid; grid-template-columns: minmax(300px, .82fr) minmax(0, 1.18fr); gap: 20px; align-items: start; }
+.account-access-card, .account-registration-pending { padding: clamp(24px, 4vw, 36px); border: 1px solid rgba(18,31,72,.12); border-radius: 24px; background: rgba(255,255,255,.9); box-shadow: 0 20px 56px rgba(26,24,81,.09); backdrop-filter: blur(14px); }
+.account-access-card h2 { margin: 10px 0 20px; font-family: var(--font-title); font-size: clamp(1.8rem, 3vw, 2.5rem); }
+.account-participant-id { padding: 13px 15px; border-radius: 13px; background: #f2effc; }
+.account-participant-id span { display: block; color: var(--muted); font-size: .59rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.account-participant-id strong { display: block; margin-top: 5px; font-size: 1rem; letter-spacing: .04em; overflow-wrap: anywhere; }
+.account-access-card .participant-qr { margin-top: 18px; padding: 0; display: block; border: 0; border-radius: 0; background: transparent; }
+.account-access-card .participant-qr-image { width: min(100%, 245px); margin: 0 auto; padding: 10px; }
+.account-access-card .participant-qr-copy { margin-top: 16px; text-align: center; }
+.account-access-card .participant-qr-copy p { font-size: .78rem; }
+.account-access-card .participant-qr-copy button { width: 100%; justify-content: center; }
+.account-dashboard > .account-activities { margin-top: 0; min-height: 100%; padding: clamp(24px, 4vw, 36px); border-radius: 24px; }
+.account-activities-heading .profile-icon { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 14px; }
+.account-activities-heading h2 { font-size: clamp(1.55rem, 2.6vw, 2rem); }
+.account-activities-heading p { font-size: .82rem; }
+.account-activity-list { margin-top: 20px; }
+.account-activity-item { padding: 17px; }
+.account-cancel-confirmation { min-width: 190px; padding: 11px; border-radius: 12px; background: #fff5f8; }
+.account-cancel-confirmation > p { margin: 0 0 9px; color: #8e204c; font-size: .72rem; font-weight: 800; }
+.account-cancel-confirmation > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.account-cancel-confirmation button { min-height: 34px; padding: 7px 10px; }
+.account-cancel-confirmation button:last-child { color: var(--navy); border-color: var(--line); background: white; }
+.account-registration-pending { max-width: 900px; margin: 0 auto; }
+
+:where(a, button, input, select, textarea):focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+
+@media (max-width: 800px) {
+  .account-header { padding: 12px 0; align-items: center; flex-direction: row; }
+  .account-brand { width: 145px; height: 48px; }
+  .account-header-actions { width: auto; }
+  .account-intro { padding: 28px 0 20px; }
+  .account-summary-strip { grid-template-columns: 1fr 1fr; }
+  .account-summary-strip > div:nth-child(2) { border-right: 0; }
+  .account-summary-strip > div:last-child { grid-column: 1 / -1; border-top: 1px solid var(--line); }
+  .account-dashboard { grid-template-columns: 1fr; }
+  .account-access-card { order: 1; }
+  .account-dashboard > .account-activities { order: 2; }
+}
+
+@media (max-width: 560px) {
+  .account-header { align-items: flex-start; flex-direction: column; }
+  .account-header-actions { width: 100%; align-items: center; flex-direction: row; flex-wrap: wrap; gap: 12px; }
+  .account-header-actions form { margin-left: auto; }
+  .account-summary-strip { grid-template-columns: 1fr; }
+  .account-summary-strip > div { border-right: 0; border-bottom: 1px solid var(--line); }
+  .account-summary-strip > div:nth-child(2) { border-right: 0; }
+  .account-summary-strip > div:last-child { grid-column: auto; border-top: 0; border-bottom: 0; }
+  .account-access-card, .account-registration-pending, .account-dashboard > .account-activities { border-radius: 18px; }
+  .account-activity-item { width: 100%; }
+  .account-cancel-confirmation { width: 100%; }
+  .account-cancel-confirmation > div, .account-cancel-confirmation button { width: 100%; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

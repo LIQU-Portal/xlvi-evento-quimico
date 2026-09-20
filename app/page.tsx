@@ -14,7 +14,21 @@ import {
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
-export default async function Home() {
+type HomeProps = {
+  searchParams: Promise<{ tipo?: string | string[] }>;
+};
+
+const programFilters = {
+  conferencia: "Conferencia",
+  taller: "Taller",
+  concurso: "Concurso",
+  actividad: "Actividad",
+} as const;
+
+export default async function Home({ searchParams }: HomeProps) {
+  const requestedType = (await searchParams).tipo;
+  const normalizedType = typeof requestedType === "string" ? requestedType.toLowerCase() : "";
+  const initialFilter = programFilters[normalizedType as keyof typeof programFilters] ?? "Todo";
   const [program, session] = await Promise.all([
     getProgramFromSheets(),
     auth(),
@@ -25,7 +39,7 @@ export default async function Home() {
   ]);
   return (
     <main id="inicio">
-      <SiteHeader />
+      <SiteHeader user={session?.user ?? null} />
 
       <section className="hero section-dark" aria-labelledby="hero-title">
         <div className="molecular-grid" aria-hidden="true" />
@@ -111,9 +125,11 @@ export default async function Home() {
             <p>Horarios, sedes y participantes están sujetos a confirmación. Usa los filtros para explorar la propuesta de agenda.</p>
           </div>
           <ProgramExplorer
+            key={initialFilter}
             items={program}
             activityAvailability={activityAvailability}
             enrolledActivityIds={enrolledActivityIds}
+            initialFilter={initialFilter}
           />
         </div>
       </section>

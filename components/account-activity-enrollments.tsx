@@ -15,24 +15,20 @@ export function AccountActivityEnrollments({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [pendingActivityId, setPendingActivityId] = useState<number | null>(null);
+  const [confirmingActivityId, setConfirmingActivityId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{
     status: "success" | "error";
     message: string;
   } | null>(null);
 
   const cancelEnrollment = (enrollment: ParticipantActivityEnrollment) => {
-    const confirmed = window.confirm(
-      `¿Quieres cancelar tu inscripción a "${enrollment.title}"? El lugar volverá a estar disponible.`,
-    );
-
-    if (!confirmed) return;
-
     setPendingActivityId(enrollment.activityId);
     setFeedback(null);
     startTransition(async () => {
       const result = await cancelActivityEnrollment(enrollment.activityId);
       setFeedback({ status: result.status, message: result.message });
       setPendingActivityId(null);
+      setConfirmingActivityId(null);
       if (result.status === "success") router.refresh();
     });
   };
@@ -66,18 +62,28 @@ export function AccountActivityEnrollments({
                 <h3>{enrollment.title}</h3>
                 <p><BadgeCheck /> Inscripción confirmada</p>
               </div>
-              <button
-                type="button"
-                disabled={isPending || !enrollment.canCancel}
-                onClick={() => cancelEnrollment(enrollment)}
-              >
-                <XCircle />
-                {pendingActivityId === enrollment.activityId
-                  ? "Cancelando..."
-                  : enrollment.canCancel
-                    ? "Cancelar inscripción"
-                    : "Periodo de cancelación cerrado"}
-              </button>
+              {confirmingActivityId === enrollment.activityId ? (
+                <div className="account-cancel-confirmation" role="group" aria-label={`Confirmar cancelación de ${enrollment.title}`}>
+                  <p>¿Liberar tu lugar?</p>
+                  <div>
+                    <button type="button" disabled={isPending} onClick={() => cancelEnrollment(enrollment)}>
+                      {pendingActivityId === enrollment.activityId ? "Cancelando…" : "Confirmar cancelación"}
+                    </button>
+                    <button type="button" disabled={isPending} onClick={() => setConfirmingActivityId(null)}>
+                      Volver
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isPending || !enrollment.canCancel}
+                  onClick={() => setConfirmingActivityId(enrollment.activityId)}
+                >
+                  <XCircle />
+                  {enrollment.canCancel ? "Cancelar" : "Cancelación cerrada"}
+                </button>
+              )}
             </article>
           ))}
         </div>

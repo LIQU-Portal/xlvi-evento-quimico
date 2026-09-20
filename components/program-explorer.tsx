@@ -28,13 +28,15 @@ export function ProgramExplorer({
   items,
   activityAvailability,
   enrolledActivityIds,
+  initialFilter,
 }: {
   items: ProgramItem[];
   activityAvailability: ActivityAvailabilityMap;
   enrolledActivityIds: number[];
+  initialFilter: (typeof filters)[number];
 }) {
   const router = useRouter();
-  const [active, setActive] = useState<(typeof filters)[number]>("Todo");
+  const [active, setActive] = useState<(typeof filters)[number]>(initialFilter);
   const [selectedItem, setSelectedItem] = useState<ProgramItem | null>(null);
   const [enrollmentFeedback, setEnrollmentFeedback] = useState<{
     status: "success" | "error";

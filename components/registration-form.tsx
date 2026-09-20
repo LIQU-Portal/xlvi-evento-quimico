@@ -75,10 +75,6 @@ export function RegistrationForm({
             <dd>{state.registration.id}</dd>
           </div>
           <div>
-            <dt>Rol reconocido</dt>
-            <dd>{state.registration.role}</dd>
-          </div>
-          <div>
             <dt>Estado</dt>
             <dd>{state.registration.status}</dd>
           </div>
