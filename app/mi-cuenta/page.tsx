@@ -1,4 +1,4 @@
-import { BadgeCheck, LogOut } from "lucide-react";
+import { BadgeCheck, LogOut, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -51,7 +51,9 @@ export default async function MiCuentaPage() {
 
           <div className="account-header-actions">
             {canAdministerActivities && (
-              <Link href="/administracion/inscripciones">Administración</Link>
+              <Link className="account-admin-link" href="/administracion/inscripciones">
+                <ShieldCheck size={16} /> Administración
+              </Link>
             )}
             <Link href="/">Volver al sitio</Link>
             <form

@@ -75,6 +75,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
                     width={30}
                     height={30}
                     referrerPolicy="no-referrer"
+                    unoptimized
                     onError={() => setImageFailed(true)}
                   />
                 ) : getInitials(user.name)}
