@@ -498,3 +498,23 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Acceso institucional: popup familiar, identidad visual oficial */
+.oauth-page { min-height: 100vh; padding: 28px; display: grid; place-items: center; color: var(--navy); background: radial-gradient(circle at 12% 12%, rgba(22,180,166,.16), transparent 36%), radial-gradient(circle at 88% 12%, rgba(214,51,132,.14), transparent 34%), #f7f9fe; }
+.oauth-card { width: min(100%, 430px); padding: 38px; text-align: center; border: 1px solid rgba(13,27,61,.13); border-radius: 26px; background: rgba(255,255,255,.94); box-shadow: 0 24px 70px rgba(13,27,61,.13); }
+.oauth-card > img { display: block; margin: 0 auto 16px; }
+.oauth-card > span { color: var(--purple); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.oauth-card h1 { margin: 16px 0 10px; font-family: var(--font-title); font-size: clamp(2rem, 8vw, 3rem); letter-spacing: -.04em; }
+.oauth-card > p { margin: 0; color: var(--muted); line-height: 1.55; }
+.oauth-card form { margin-top: 28px; }
+.oauth-card form button { width: 100%; min-height: 52px; padding: 11px 18px; display: inline-flex; align-items: center; justify-content: center; gap: 11px; color: var(--navy); border: 1px solid rgba(13,27,61,.18); border-radius: 999px; background: white; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(13,27,61,.07); }
+.oauth-card form button:hover { border-color: var(--purple); background: #fbf9ff; }
+.oauth-card form svg { width: 21px; height: 21px; flex: 0 0 auto; }
+.oauth-card small { display: block; margin-top: 18px; color: var(--muted); font-size: .68rem; line-height: 1.5; }
+.oauth-card-complete { padding-block: 54px; }
+.oauth-card-complete h1 { color: var(--teal); }
+
+@media (max-width: 520px) {
+  .oauth-page { padding: 16px; }
+  .oauth-card { padding: 30px 22px; border-radius: 22px; }
+}

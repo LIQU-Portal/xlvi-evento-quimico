@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-import { signInWithGoogle } from "@/app/auth-actions";
+import { GoogleLoginButton } from "@/components/google-login-button";
 
 const links = [
   ["Programa", "/#programa"],
@@ -82,9 +82,9 @@ export function SiteHeader({ user }: SiteHeaderProps) {
               Mi cuenta
             </Link>
           ) : (
-            <form action={signInWithGoogle} className="header-login-form">
-              <button className="account-link" type="submit" onClick={() => setOpen(false)}>Log in</button>
-            </form>
+            <div className="header-login-form" onClick={() => setOpen(false)}>
+              <GoogleLoginButton />
+            </div>
           )}
         </nav>
       </div>
