@@ -11,6 +11,12 @@ export type ProgramItem = {
   place: string;
   capacity?: string;
   status?: "Provisional" | "Confirmado";
+  flyerFileId?: string;
+  fullDescription?: string;
+  registrationCapacity?: number;
+  registrationEnabled?: boolean;
+  registrationOpenAt?: string;
+  registrationCloseAt?: string;
 };
 
 export const content = {
