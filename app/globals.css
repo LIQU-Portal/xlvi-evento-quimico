@@ -148,6 +148,11 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
 .activity-modal-meta svg { width: 17px; height: 17px; color: #6c2bd9; }
 .activity-registration-button { margin-top: 32px; min-height: 48px; border: 0; border-radius: 999px; color: white; background: #6c2bd9; font: inherit; font-weight: 800; }
 .activity-registration-button:disabled { color: #737b93; background: #e3e4ec; cursor: not-allowed; }
+.activity-enrollment-feedback { margin-top: 14px; padding: 13px 15px; border-radius: 12px; font-size: .78rem; line-height: 1.5; }
+.activity-enrollment-feedback p { margin: 0; }
+.activity-enrollment-feedback a { display: inline-block; margin-top: 8px; font-weight: 800; text-decoration: underline; }
+.activity-enrollment-success { color: #176b61; background: rgba(22,180,166,.12); }
+.activity-enrollment-error { color: #8e204c; background: #ffe6f0; }
 .status-pill { height: max-content; padding: 7px 10px; color: #ff8dbf; background: rgba(214,51,132,.12); border: 1px solid rgba(214,51,132,.35); text-transform: uppercase; letter-spacing: .1em; font-size: .56rem; font-weight: 800; }
 
 .activities-section { background: #fff; }
@@ -299,6 +304,21 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
 .confirmation-email-action > button:disabled { opacity: .5; cursor: wait; }
 .confirmation-email-action .registration-notice, .confirmation-email-action .registration-error { margin: 12px 0 0; }
 .confirmation-email-sent { margin: 16px 0 0; color: #176b61; font-size: .78rem; font-weight: 800; }
+.account-activities { margin-top: 22px; padding: clamp(26px, 5vw, 42px); border: 1px solid rgba(18, 31, 72, .12); border-radius: 26px; background: rgba(255, 255, 255, .88); box-shadow: 0 24px 70px rgba(26, 24, 81, .08); backdrop-filter: blur(14px); }
+.account-activities-heading { display: flex; align-items: center; gap: 18px; }
+.account-activities-heading > div:last-child > span { color: var(--pink); text-transform: uppercase; letter-spacing: .12em; font-size: .65rem; font-weight: 800; }
+.account-activities-heading h2 { margin: 7px 0 5px; font-family: var(--font-title); font-size: clamp(1.7rem, 3vw, 2.5rem); }
+.account-activities-heading p, .account-activities-empty { margin: 0; color: var(--muted); line-height: 1.6; }
+.account-activity-list { margin-top: 28px; display: grid; gap: 12px; }
+.account-activity-item { padding: 20px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border: 1px solid var(--line); border-radius: 18px; background: white; }
+.account-activity-item span { color: var(--purple); text-transform: uppercase; letter-spacing: .1em; font-size: .6rem; font-weight: 800; }
+.account-activity-item h3 { margin: 7px 0; font-family: var(--font-title); font-size: 1.15rem; }
+.account-activity-item p { margin: 0; display: flex; align-items: center; gap: 7px; color: #176b61; font-size: .74rem; font-weight: 700; }
+.account-activity-item p svg { width: 16px; height: 16px; }
+.account-activity-item button { min-height: 42px; padding: 9px 14px; display: inline-flex; align-items: center; gap: 7px; color: #8e204c; border: 1px solid rgba(142,32,76,.25); border-radius: 999px; background: #fff5f8; font: inherit; font-size: .72rem; font-weight: 800; cursor: pointer; }
+.account-activity-item button svg { width: 16px; height: 16px; }
+.account-activity-item button:disabled { opacity: .52; cursor: not-allowed; }
+.account-activities-empty { margin-top: 28px; padding: 22px; border-radius: 16px; background: #f4f5fa; }
 
 @media (max-width: 800px) {
   .account-header { padding: 18px 0; align-items: flex-start; flex-direction: column; }
@@ -318,4 +338,6 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
   .participant-qr-image { width: min(100%, 260px); margin: 0 auto; }
   .profile-card, .registration-card { border-radius: 20px; }
   .account-logo-panel { width: min(100%, 220px); padding: 10px 12px; border-radius: 14px; }
+  .account-activity-item { align-items: flex-start; flex-direction: column; }
+  .account-activity-item button { width: 100%; justify-content: center; }
 }

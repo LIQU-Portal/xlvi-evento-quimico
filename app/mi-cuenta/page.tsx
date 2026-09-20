@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth, signOut } from "@/auth";
+import { AccountActivityEnrollments } from "@/components/account-activity-enrollments";
 import { ConfirmationEmailButton } from "@/components/confirmation-email-button";
 import { ParticipantQr } from "@/components/participant-qr";
 import { RegistrationForm } from "@/components/registration-form";
@@ -12,6 +13,7 @@ import {
   lookupRegistration,
   type EventRegistration,
 } from "@/lib/registration";
+import { getParticipantActivityEnrollments } from "@/lib/activity-registration";
 
 function RegistrationDetails({
   registration,
@@ -25,8 +27,7 @@ function RegistrationDetails({
       </span>
       <h2>Ya formas parte del evento</h2>
       <p>
-        Conserva tu ID. Más adelante estará asociado con tus inscripciones,
-        asistencias y constancia.
+        Conserva tu ID. Estará asociado con tus inscripciones y constancia.
       </p>
       <dl className="registration-summary">
         <div>
@@ -71,7 +72,10 @@ export default async function MiCuentaPage() {
   const email = session.user.email.trim().toLowerCase();
   const name = session.user.name?.trim() || "Sin nombre registrado";
   const accountType = getAccountType(email);
-  const lookup = await lookupRegistration(email);
+  const [lookup, activityEnrollments] = await Promise.all([
+    lookupRegistration(email),
+    getParticipantActivityEnrollments(email),
+  ]);
   const role = lookup.registration?.role ?? (lookup.isStaff ? "Staff" : accountType);
 
   return (
@@ -167,6 +171,10 @@ export default async function MiCuentaPage() {
             )}
           </section>
         </div>
+
+        {lookup.registration && (
+          <AccountActivityEnrollments enrollments={activityEnrollments} />
+        )}
       </div>
     </main>
   );
