@@ -1,4 +1,5 @@
 import { BadgeCheck, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -99,10 +100,23 @@ export default async function MiCuentaPage() {
           </div>
         </header>
 
-        <section className="account-intro">
-          <p>Área personal</p>
-          <h1>Mi cuenta</h1>
-          <span>Registro e identidad institucional para el evento 2026.</span>
+        <section className="account-intro" aria-labelledby="account-title">
+          <div className="account-intro-copy">
+            <p>Área personal</p>
+            <h1 id="account-title">Mi cuenta</h1>
+            <span>Registro e identidad institucional para el evento 2026.</span>
+          </div>
+
+          <div className="account-logo-panel">
+            <Image
+              src="/branding/logo-evento-2026.png"
+              alt="XLVI Evento del Químico 2026. Química que evoluciona, futuro que se construye"
+              width={1776}
+              height={888}
+              sizes="(max-width: 800px) 92vw, 520px"
+              priority
+            />
+          </div>
         </section>
 
         <div className="account-grid">
