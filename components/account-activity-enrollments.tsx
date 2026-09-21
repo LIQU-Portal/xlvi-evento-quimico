@@ -61,6 +61,13 @@ export function AccountActivityEnrollments({
                 <span>{enrollment.type}</span>
                 <h3>{enrollment.title}</h3>
                 <p><BadgeCheck /> Inscripción confirmada</p>
+                {enrollment.teamName && (
+                  <div className="account-team-summary">
+                    <strong>{enrollment.teamName}</strong>
+                    <span>{enrollment.teamMembers?.join(" · ")}</span>
+                    <small>{enrollment.isTeamCaptain ? "Eres capitán" : "Integrante del equipo"}</small>
+                  </div>
+                )}
               </div>
               {confirmingActivityId === enrollment.activityId ? (
                 <div className="account-cancel-confirmation" role="group" aria-label={`Confirmar cancelación de ${enrollment.title}`}>
@@ -77,11 +84,13 @@ export function AccountActivityEnrollments({
               ) : (
                 <button
                   type="button"
-                  disabled={isPending || !enrollment.canCancel}
+                  disabled={isPending || !enrollment.canCancel || enrollment.isTeamCaptain === false}
                   onClick={() => setConfirmingActivityId(enrollment.activityId)}
                 >
                   <XCircle />
-                  {enrollment.canCancel ? "Cancelar" : "Cancelación cerrada"}
+                  {enrollment.isTeamCaptain === false
+                    ? "Cancela el capitán"
+                    : enrollment.canCancel ? "Cancelar" : "Cancelación cerrada"}
                 </button>
               )}
             </article>

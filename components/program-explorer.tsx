@@ -10,6 +10,7 @@ import type {
   ActivityAvailability,
   ActivityAvailabilityMap,
 } from "@/lib/activity-registration";
+import { TeamEnrollmentForm } from "@/components/team-enrollment-form";
 
 const filters: Array<"Todo" | ProgramType> = ["Todo", "Conferencia", "Taller", "Concurso", "Actividad"];
 
@@ -185,7 +186,7 @@ export function ProgramExplorer({
                   <span>
                     <UsersRound />{
                       selectedAvailability?.capacity
-                        ? `${selectedAvailability.remainingCapacity} lugares disponibles de ${selectedAvailability.capacity}`
+                        ? `${selectedAvailability.remainingCapacity} ${selectedAvailability.capacityUnit === "equipos" ? "equipos" : "lugares"} disponibles de ${selectedAvailability.capacity}`
                         : `Capacidad: ${selectedItem.registrationCapacity ?? "por confirmar"}`
                     }
                   </span>
@@ -194,6 +195,13 @@ export function ProgramExplorer({
               {(selectedItem.type === "Taller" ||
                 selectedItem.type === "Concurso") && (
                 <>
+                  {selectedAvailability?.capacityUnit === "equipos" && !isSelectedEnrolled && selectedAvailability.status === "open" ? (
+                    <TeamEnrollmentForm
+                      activityId={selectedItem.id}
+                      minMembers={selectedAvailability.minMembers ?? 1}
+                      maxMembers={selectedAvailability.maxMembers ?? 1}
+                    />
+                  ) : (
                   <button
                     className="activity-registration-button"
                     type="button"
@@ -213,6 +221,7 @@ export function ProgramExplorer({
                           ? "Ya estás inscrito"
                         : getRegistrationLabel(selectedAvailability)}
                   </button>
+                  )}
                   {enrollmentFeedback && (
                     <div
                       className={`activity-enrollment-feedback activity-enrollment-${enrollmentFeedback.status}`}

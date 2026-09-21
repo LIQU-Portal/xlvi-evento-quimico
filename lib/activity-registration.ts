@@ -17,6 +17,9 @@ export type ActivityAvailability = {
   remainingCapacity?: number;
   opensAt?: string;
   closesAt?: string;
+  capacityUnit?: "personas" | "equipos";
+  minMembers?: number;
+  maxMembers?: number;
 };
 
 export type ActivityAvailabilityMap = Record<number, ActivityAvailability>;
@@ -38,12 +41,16 @@ export type ParticipantActivityEnrollment = {
   createdAt: string;
   closesAt?: string;
   canCancel: boolean;
+  teamName?: string;
+  teamMembers?: string[];
+  isTeamCaptain?: boolean;
 };
 
 export type CancellationOutcome =
   | "cancelled"
   | "already_cancelled"
   | "cancellation_closed"
+  | "captain_required"
   | "not_found";
 
 type ActivityConfig = {
@@ -54,6 +61,9 @@ type ActivityConfig = {
   registrationEnabled: boolean;
   opensAt: string | null;
   closesAt: string | null;
+  capacityUnit: "personas" | "equipos";
+  minMembers: number;
+  maxMembers: number;
 };
 
 function parseLocalDateTime(value: string | undefined): string | null {
@@ -91,6 +101,9 @@ function getActivityConfig(item: ProgramItem): ActivityConfig | null {
     registrationEnabled: item.registrationEnabled === true && Boolean(datesAreValid),
     opensAt,
     closesAt,
+    capacityUnit: item.capacityUnit === "equipos" ? "equipos" : "personas",
+    minMembers: item.minMembers ?? 1,
+    maxMembers: item.maxMembers ?? 1,
   };
 }
 
@@ -99,8 +112,9 @@ async function syncActivity(config: ActivityConfig) {
   const rows = await sql.query(
     `
       INSERT INTO activities (
-        id, type, title, capacity, registration_enabled, opens_at, closes_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        id, type, title, capacity, registration_enabled, opens_at, closes_at,
+        capacity_unit, min_members, max_members
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       ON CONFLICT (id) DO UPDATE SET
         type = EXCLUDED.type,
         title = EXCLUDED.title,
@@ -108,6 +122,9 @@ async function syncActivity(config: ActivityConfig) {
         registration_enabled = EXCLUDED.registration_enabled,
         opens_at = EXCLUDED.opens_at,
         closes_at = EXCLUDED.closes_at,
+        capacity_unit = EXCLUDED.capacity_unit,
+        min_members = EXCLUDED.min_members,
+        max_members = EXCLUDED.max_members,
         updated_at = NOW()
       RETURNING
         id,
@@ -116,6 +133,9 @@ async function syncActivity(config: ActivityConfig) {
         registration_enabled,
         opens_at,
         closes_at,
+        capacity_unit,
+        min_members,
+        max_members,
         CASE
           WHEN NOT registration_enabled THEN 'disabled'
           WHEN opens_at IS NOT NULL AND NOW() < opens_at THEN 'upcoming'
@@ -132,6 +152,9 @@ async function syncActivity(config: ActivityConfig) {
       config.registrationEnabled,
       config.opensAt,
       config.closesAt,
+      config.capacityUnit,
+      config.minMembers,
+      config.maxMembers,
     ],
   );
 
@@ -142,6 +165,9 @@ async function syncActivity(config: ActivityConfig) {
     registration_enabled: boolean;
     opens_at: string | null;
     closes_at: string | null;
+    capacity_unit: "personas" | "equipos";
+    min_members: number;
+    max_members: number;
     status: Exclude<ActivityRegistrationStatus, "unavailable">;
   };
 }
@@ -181,6 +207,9 @@ export async function syncProgramActivities(
         remainingCapacity: activity.capacity - activity.reserved_count,
         ...(activity.opens_at ? { opensAt: activity.opens_at } : {}),
         ...(activity.closes_at ? { closesAt: activity.closes_at } : {}),
+        capacityUnit: activity.capacity_unit,
+        minMembers: activity.min_members,
+        maxMembers: activity.max_members,
       };
       return result;
     }, unavailable);
@@ -220,6 +249,40 @@ export async function enrollParticipant(input: {
   };
 }
 
+export async function enrollTeam(input: {
+  activity: ProgramItem;
+  teamName: string;
+  members: Array<{ id: string; email: string; name: string }>;
+}) {
+  const config = getActivityConfig(input.activity);
+
+  if (!config || config.capacityUnit !== "equipos") {
+    return { outcome: "not_found" as const, remainingCapacity: null };
+  }
+
+  await syncActivity(config);
+  const sql = getSql();
+  const rows = await sql.query(
+    "SELECT * FROM enroll_team_in_activity($1, $2, $3::TEXT[], $4::TEXT[], $5::TEXT[])",
+    [
+      config.id,
+      input.teamName,
+      input.members.map((member) => member.id),
+      input.members.map((member) => member.email),
+      input.members.map((member) => member.name),
+    ],
+  );
+  const result = rows[0] as {
+    outcome: EnrollmentOutcome | "invalid_team" | "member_already_enrolled";
+    remaining_capacity: number | null;
+  };
+
+  return {
+    outcome: result.outcome,
+    remainingCapacity: result.remaining_capacity,
+  };
+}
+
 export async function getParticipantActivityEnrollments(
   email: string,
 ): Promise<ParticipantActivityEnrollment[]> {
@@ -235,9 +298,19 @@ export async function getParticipantActivityEnrollments(
         enrollment.status,
         enrollment.created_at,
         activity.closes_at,
+        team.name AS team_name,
+        team.captain_email,
+        CASE WHEN enrollment.team_id IS NULL THEN ARRAY[]::TEXT[] ELSE ARRAY(
+          SELECT member.participant_name
+          FROM activity_enrollments AS member
+          WHERE member.team_id = enrollment.team_id
+            AND member.status = 'Confirmado'
+          ORDER BY member.id
+        ) END AS team_members,
         (activity.closes_at IS NULL OR NOW() < activity.closes_at) AS can_cancel
       FROM activity_enrollments AS enrollment
       INNER JOIN activities AS activity ON activity.id = enrollment.activity_id
+      LEFT JOIN activity_teams AS team ON team.id = enrollment.team_id
       WHERE LOWER(enrollment.participant_email) = LOWER($1)
         AND enrollment.status = 'Confirmado'
       ORDER BY enrollment.created_at
@@ -253,6 +326,13 @@ export async function getParticipantActivityEnrollments(
     createdAt: row.created_at as string,
     ...(row.closes_at ? { closesAt: row.closes_at as string } : {}),
     canCancel: row.can_cancel as boolean,
+    ...(row.team_name ? { teamName: row.team_name as string } : {}),
+    ...(Array.isArray(row.team_members) && row.team_members.length
+      ? { teamMembers: row.team_members as string[] }
+      : {}),
+    isTeamCaptain:
+      !row.team_name ||
+      String(row.captain_email).toLowerCase() === email.toLowerCase(),
   }));
 }
 

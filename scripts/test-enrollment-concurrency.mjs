@@ -7,6 +7,7 @@ if (!connectionString) throw new Error("Falta POSTGRES_URL o POSTGRES_URL_NON_PO
 
 const sql = neon(connectionString);
 const activityId = -Number(String(Date.now()).slice(-8));
+const teamActivityId = activityId - 1;
 const testPrefix = `concurrency-${Date.now()}`;
 
 try {
@@ -63,8 +64,40 @@ try {
     unique_emails: 20,
   });
 
-  console.log("Prueba aprobada: 150 solicitudes, 20 confirmadas, 130 rechazadas por cupo y 0 duplicados.");
+  await sql.query(
+    `INSERT INTO activities (id, type, title, capacity, reserved_count, registration_enabled, capacity_unit, min_members, max_members)
+     VALUES ($1, 'Concurso', $2, 20, 0, TRUE, 'equipos', 3, 3)`,
+    [teamActivityId, `Prueba de equipos ${testPrefix}`],
+  );
+  const teamResults = await Promise.all(
+    Array.from({ length: 150 }, (_, team) => {
+      const ids = Array.from({ length: 3 }, (_, member) => `${testPrefix}-T${team}-P${member}`);
+      const emails = ids.map((id) => `${id}@example.invalid`);
+      const names = ids.map((id) => `Participante ${id}`);
+      return sql.query(
+        "SELECT * FROM enroll_team_in_activity($1, $2, $3::TEXT[], $4::TEXT[], $5::TEXT[])",
+        [teamActivityId, `Equipo ${team}`, ids, emails, names],
+      );
+    }),
+  );
+  const teamOutcomes = teamResults.map((rows) => rows[0].outcome);
+  assert.equal(teamOutcomes.filter((outcome) => outcome === "confirmed").length, 20);
+  assert.equal(teamOutcomes.filter((outcome) => outcome === "full").length, 130);
+  const teamCounts = await sql.query(
+    `SELECT
+       (SELECT reserved_count FROM activities WHERE id = $1)::INTEGER AS reserved,
+       COUNT(DISTINCT team_id)::INTEGER AS teams,
+       COUNT(*)::INTEGER AS members
+     FROM activity_enrollments WHERE activity_id = $1 AND status = 'Confirmado'`,
+    [teamActivityId],
+  );
+  assert.deepEqual(teamCounts[0], { reserved: 20, teams: 20, members: 60 });
+
+  console.log("Prueba aprobada: 150 solicitudes individuales y 150 de equipos, sin sobrecupo ni duplicados.");
 } finally {
+  await sql.query("DELETE FROM activity_enrollments WHERE activity_id = $1", [teamActivityId]);
+  await sql.query("DELETE FROM activity_teams WHERE activity_id = $1", [teamActivityId]);
+  await sql.query("DELETE FROM activities WHERE id = $1", [teamActivityId]);
   await sql.query("DELETE FROM activity_enrollments WHERE activity_id = $1", [activityId]);
   await sql.query("DELETE FROM activities WHERE id = $1", [activityId]);
   console.log("Datos aislados de prueba eliminados.");

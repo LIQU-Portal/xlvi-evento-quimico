@@ -130,6 +130,12 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
         const registrationCapacity = Number(
           row[column("capacidad")]?.trim(),
         );
+        const capacityUnit =
+          row[column("unidadcupo")]?.trim().toLowerCase() === "equipos"
+            ? "equipos"
+            : "personas";
+        const minMembers = Number(row[column("minintegrantes")]?.trim());
+        const maxMembers = Number(row[column("maxintegrantes")]?.trim());
         const date = row[column("fecha")]?.trim();
         const statusValue = row[column("estado")]?.trim().toLowerCase();
 
@@ -163,6 +169,13 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
           registrationEnabled: parseCheckbox(
             row[column("inscripcionhabilitada")],
           ),
+          capacityUnit,
+          minMembers:
+            Number.isInteger(minMembers) && minMembers > 0 ? minMembers : 1,
+          maxMembers:
+            Number.isInteger(maxMembers) && maxMembers >= minMembers
+              ? maxMembers
+              : 1,
           ...(row[column("aperturaregistro")]?.trim()
             ? {
                 registrationOpenAt: row[column("aperturaregistro")].trim(),

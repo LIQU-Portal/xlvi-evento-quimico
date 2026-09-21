@@ -32,6 +32,10 @@ type AppsScriptResponse = {
   alreadyRegistered?: boolean;
   confirmationEmailSent?: boolean;
   emailMessage?: string;
+  registrations?: Array<{
+    email: string;
+    registration: EventRegistration | null;
+  }>;
 };
 
 export class RegistrationServiceError extends Error {}
@@ -121,6 +125,12 @@ export async function lookupRegistration(
           : "No fue posible consultar Google Sheets.",
     };
   }
+}
+
+export async function lookupRegistrations(emails: string[]) {
+  const normalized = emails.map((email) => email.trim().toLowerCase());
+  const result = await callAppsScript({ action: "lookupMany", emails: normalized });
+  return result.registrations ?? [];
 }
 
 export async function createRegistration(input: {

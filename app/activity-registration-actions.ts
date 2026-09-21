@@ -7,8 +7,72 @@ import { getProgramFromSheets } from "@/lib/sheets";
 import {
   cancelParticipantEnrollment,
   enrollParticipant,
+  enrollTeam,
 } from "@/lib/activity-registration";
-import { lookupRegistration } from "@/lib/registration";
+import { lookupRegistration, lookupRegistrations } from "@/lib/registration";
+
+function normalizeTeamEmails(emails: string[]) {
+  return emails.map((email) => email.trim().toLowerCase()).filter(Boolean);
+}
+
+export async function validateTeamMembers(activityId: number, emails: string[]) {
+  const session = await auth();
+  const captainEmail = session?.user?.email?.trim().toLowerCase();
+  if (!captainEmail) return { status: "error" as const, message: "Inicia sesiÃ³n para continuar.", members: [] };
+
+  const program = await getProgramFromSheets();
+  const activity = program.find((item) => item.id === activityId);
+  if (!activity || activity.capacityUnit !== "equipos") {
+    return { status: "error" as const, message: "Este concurso no admite equipos.", members: [] };
+  }
+
+  const memberEmails = [captainEmail, ...normalizeTeamEmails(emails)];
+  if (new Set(memberEmails).size !== memberEmails.length) {
+    return { status: "error" as const, message: "No repitas correos.", members: [] };
+  }
+
+  const registrations = await lookupRegistrations(memberEmails);
+  const members = registrations.map(({ email, registration }) => ({
+    email,
+    valid: registration?.status === "Confirmado",
+    name: registration?.name ?? "",
+  }));
+  const valid = members.every((member) => member.valid);
+  return {
+    status: valid ? "success" as const : "error" as const,
+    message: valid ? "Equipo validado." : "AlgÃºn integrante debe completar primero su registro general.",
+    members,
+  };
+}
+
+export async function enrollTeamInActivity(activityId: number, teamName: string, emails: string[]) {
+  const session = await auth();
+  const captainEmail = session?.user?.email?.trim().toLowerCase();
+  if (!captainEmail) return { status: "error" as const, code: "auth_required", message: "Inicia sesiÃ³n para inscribir al equipo." };
+
+  const program = await getProgramFromSheets();
+  const activity = program.find((item) => item.id === activityId);
+  if (!activity || activity.capacityUnit !== "equipos") return { status: "error" as const, code: "not_found", message: "El concurso ya no estÃ¡ disponible." };
+
+  const memberEmails = [captainEmail, ...normalizeTeamEmails(emails)];
+  const min = activity.minMembers ?? 1;
+  const max = activity.maxMembers ?? 1;
+  if (memberEmails.length < min || memberEmails.length > max || new Set(memberEmails).size !== memberEmails.length) {
+    return { status: "error" as const, code: "invalid_team", message: `El equipo debe tener entre ${min} y ${max} integrantes sin correos repetidos.` };
+  }
+  const cleanTeamName = teamName.trim();
+  if (memberEmails.length > 1 && cleanTeamName.length < 2) return { status: "error" as const, code: "invalid_team", message: "Escribe el nombre del equipo." };
+
+  const registrations = await lookupRegistrations(memberEmails);
+  const members = registrations.map(({ registration }) => registration).filter((registration): registration is NonNullable<typeof registration> => Boolean(registration && registration.status === "Confirmado"));
+  if (members.length !== memberEmails.length) return { status: "error" as const, code: "registration_required", message: "Todos deben registrarse primero al evento." };
+
+  const result = await enrollTeam({ activity, teamName: cleanTeamName || members[0].name, members: members.map((member) => ({ id: member.id, email: member.email, name: member.name })) });
+  revalidatePath("/"); revalidatePath("/mi-cuenta");
+  if (result.outcome === "confirmed" || result.outcome === "already_enrolled") return { status: "success" as const, code: result.outcome, message: "InscripciÃ³n del equipo confirmada.", remainingCapacity: result.remainingCapacity };
+  const messages: Record<string, string> = { invalid_team: "Revisa el nÃºmero de integrantes.", member_already_enrolled: "Uno de los integrantes ya estÃ¡ inscrito en este concurso.", disabled: "Las inscripciones no estÃ¡n habilitadas.", upcoming: "Las inscripciones todavÃ­a no comienzan.", closed: "Las inscripciones ya cerraron.", full: "El concurso alcanzÃ³ su cupo.", not_found: "El concurso ya no estÃ¡ disponible." };
+  return { status: "error" as const, code: result.outcome, message: messages[result.outcome] ?? "No fue posible completar la inscripciÃ³n.", remainingCapacity: result.remainingCapacity };
+}
 
 export async function enrollInActivity(activityId: number) {
   if (!Number.isInteger(activityId) || activityId < 1) {
@@ -149,6 +213,7 @@ export async function cancelActivityEnrollment(activityId: number) {
     const messages = {
       already_cancelled: "Esta inscripción ya estaba cancelada.",
       cancellation_closed: "El periodo para cancelar esta inscripción terminó.",
+      captain_required: "Solo el capitán puede cancelar la inscripción del equipo.",
       not_found: "No encontramos una inscripción activa para esta actividad.",
     } as const;
 

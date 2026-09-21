@@ -505,6 +505,26 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
   .account-profile-avatar { width: 56px; height: 56px; flex-basis: 56px; }
 }
 
+.team-enrollment-form { margin-top: 1rem; padding: 1rem; border: 1px solid rgba(108,43,217,.2); border-radius: 18px; background: #f8f6ff; }
+.team-form-heading { display: flex; gap: .65rem; align-items: center; margin-bottom: .9rem; }
+.team-form-heading svg { color: #6c2bd9; }
+.team-form-heading div { display: grid; gap: .1rem; }
+.team-form-heading span, .team-size-note { color: #59627d; font-size: .86rem; }
+.team-enrollment-form label { display: grid; gap: .35rem; margin-top: .7rem; color: #121f48; font-size: .84rem; font-weight: 700; }
+.team-enrollment-form input { width: 100%; min-height: 44px; padding: .7rem .85rem; border: 1px solid #ccd2e1; border-radius: 12px; background: white; color: #121f48; font: inherit; }
+.team-email-list label > div { display: flex; gap: .4rem; }
+.team-email-list button, .team-add-member { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; border: 0; background: transparent; color: #6c2bd9; font-weight: 750; cursor: pointer; }
+.team-email-list button { width: 44px; flex: 0 0 44px; }
+.team-email-list svg, .team-add-member svg, .team-validation-list svg { width: 18px; height: 18px; }
+.team-add-member { padding: .7rem 0; }
+.team-validation-list { display: grid; gap: .35rem; padding: 0; margin: .75rem 0 0; list-style: none; }
+.team-validation-list li { display: flex; align-items: center; gap: .45rem; font-size: .88rem; }
+.team-validation-list .valid { color: #087f5b; }
+.team-validation-list .invalid { color: #b42318; }
+.team-feedback { margin: .7rem 0 0; color: #3f4965; font-weight: 650; }
+.account-team-summary { display: grid; gap: .2rem; margin-top: .65rem; padding: .65rem .75rem; border-radius: 12px; background: #f4efff; }
+.account-team-summary span, .account-team-summary small { color: #59627d; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

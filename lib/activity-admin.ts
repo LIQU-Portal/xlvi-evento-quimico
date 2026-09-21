@@ -19,6 +19,7 @@ export type AdminActivitySummary = {
   confirmed: number;
   cancelled: number;
   remaining: number;
+  capacityUnit: "personas" | "equipos";
 };
 
 export type AdminEnrollment = {
@@ -34,6 +35,7 @@ export type AdminEnrollment = {
   cancelledAt?: string;
   cancelledBy?: string;
   cancellationReason?: string;
+  teamName?: string;
 };
 
 export type AdminEnrollmentFilters = {
@@ -63,8 +65,13 @@ export async function getAdminActivitySummary(): Promise<AdminActivitySummary[]>
       activity.type,
       activity.title,
       activity.capacity,
-      COUNT(enrollment.id) FILTER (WHERE enrollment.status = 'Confirmado')::INTEGER AS confirmed,
-      COUNT(enrollment.id) FILTER (WHERE enrollment.status = 'Cancelado')::INTEGER AS cancelled,
+      activity.capacity_unit,
+      CASE WHEN activity.capacity_unit = 'equipos'
+        THEN COUNT(DISTINCT enrollment.team_id) FILTER (WHERE enrollment.status = 'Confirmado')
+        ELSE COUNT(enrollment.id) FILTER (WHERE enrollment.status = 'Confirmado') END::INTEGER AS confirmed,
+      CASE WHEN activity.capacity_unit = 'equipos'
+        THEN COUNT(DISTINCT enrollment.team_id) FILTER (WHERE enrollment.status = 'Cancelado')
+        ELSE COUNT(enrollment.id) FILTER (WHERE enrollment.status = 'Cancelado') END::INTEGER AS cancelled,
       GREATEST(activity.capacity - activity.reserved_count, 0)::INTEGER AS remaining
     FROM activities AS activity
     LEFT JOIN activity_enrollments AS enrollment ON enrollment.activity_id = activity.id
@@ -81,6 +88,7 @@ export async function getAdminActivitySummary(): Promise<AdminActivitySummary[]>
     confirmed: row.confirmed as number,
     cancelled: row.cancelled as number,
     remaining: row.remaining as number,
+    capacityUnit: row.capacity_unit as "personas" | "equipos",
   }));
 }
 
@@ -109,8 +117,10 @@ export async function getAdminEnrollments(
         enrollment.cancelled_at,
         enrollment.cancelled_by,
         enrollment.cancellation_reason
+        , team.name AS team_name
       FROM activity_enrollments AS enrollment
       INNER JOIN activities AS activity ON activity.id = enrollment.activity_id
+      LEFT JOIN activity_teams AS team ON team.id = enrollment.team_id
       WHERE activity.id > 0
         AND ($1::INTEGER IS NULL OR activity.id = $1)
         AND ($2::TEXT IS NULL OR enrollment.status = $2)
@@ -140,6 +150,7 @@ export async function getAdminEnrollments(
     ...(row.cancellation_reason
       ? { cancellationReason: row.cancellation_reason as string }
       : {}),
+    ...(row.team_name ? { teamName: row.team_name as string } : {}),
   }));
 }
 

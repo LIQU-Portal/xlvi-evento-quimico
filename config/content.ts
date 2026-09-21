@@ -17,6 +17,9 @@ export type ProgramItem = {
   registrationEnabled?: boolean;
   registrationOpenAt?: string;
   registrationCloseAt?: string;
+  capacityUnit?: "personas" | "equipos";
+  minMembers?: number;
+  maxMembers?: number;
 };
 
 export const content = {

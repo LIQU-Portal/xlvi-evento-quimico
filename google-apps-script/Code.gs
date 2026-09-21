@@ -43,6 +43,10 @@ function doPost(event) {
       return json_(lookup_(payload.email));
     }
 
+    if (payload.action === "lookupMany") {
+      return json_(lookupMany_(payload.emails));
+    }
+
     if (payload.action === "register") {
       lock.waitLock(10000);
       return json_(register_(payload));
@@ -80,6 +84,41 @@ function lookup_(rawEmail) {
     ok: true,
     registration: entry ? entry.registration : null,
     isStaff: isStaff_(staff, email),
+  };
+}
+
+function lookupMany_(rawEmails) {
+  if (!Array.isArray(rawEmails) || rawEmails.length < 1 || rawEmails.length > 5) {
+    throw new Error("EnvÃ­a entre 1 y 5 correos institucionales.");
+  }
+
+  const emails = rawEmails.map(normalizeEmail_);
+  if (new Set(emails).size !== emails.length) {
+    throw new Error("No repitas correos dentro del equipo.");
+  }
+
+  const spreadsheet = getSpreadsheet_();
+  const registrations = ensureSheet_(spreadsheet, REGISTRATIONS_SHEET, REGISTRATION_HEADERS);
+  const values = registrations.getDataRange().getDisplayValues();
+  const byEmail = {};
+
+  for (let row = 1; row < values.length; row += 1) {
+    const email = String(values[row][3] || "").trim().toLowerCase();
+    if (!emails.includes(email)) continue;
+    byEmail[email] = {
+      id: values[row][0], createdAt: values[row][1], email: values[row][3],
+      name: values[row][4], accountType: values[row][5], role: values[row][6],
+      institutionalCode: values[row][7], affiliation: values[row][8],
+      status: values[row][9], confirmationEmailSentAt: values[row][10] || "",
+    };
+  }
+
+  return {
+    ok: true,
+    registrations: emails.map(function (email) {
+      const registration = byEmail[email] || null;
+      return { email: email, registration: registration };
+    }),
   };
 }
 
