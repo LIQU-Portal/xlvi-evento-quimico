@@ -80,7 +80,7 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
 
   try {
     const response = await fetch(url, {
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
 
     if (!response.ok) {

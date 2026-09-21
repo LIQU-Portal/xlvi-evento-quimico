@@ -1,11 +1,13 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
+import { signOutToHome } from "@/app/auth-actions";
 import { GoogleLoginButton } from "@/components/google-login-button";
+import { ProfileAvatar } from "@/components/profile-avatar";
 
 const links = [
   ["Programa", "/#programa"],
@@ -22,28 +24,8 @@ type SiteHeaderProps = {
   } | null;
 };
 
-function getInitials(name: string | null | undefined) {
-  const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
-  if (!parts.length) return "U";
-  return `${parts[0][0]}${parts.length > 1 ? parts.at(-1)?.[0] : ""}`.toUpperCase();
-}
-
-function getGoogleProfileImage(image: string | null | undefined) {
-  if (!image) return null;
-  try {
-    const url = new URL(image);
-    return url.protocol === "https:" && url.hostname === "lh3.googleusercontent.com"
-      ? image
-      : null;
-  } catch {
-    return null;
-  }
-}
-
 export function SiteHeader({ user }: SiteHeaderProps) {
   const [open, setOpen] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
-  const profileImage = getGoogleProfileImage(user?.image);
 
   return (
     <header className="site-header">
@@ -66,22 +48,17 @@ export function SiteHeader({ user }: SiteHeaderProps) {
             <Link key={href} href={href} onClick={() => setOpen(false)}>{label}</Link>
           ))}
           {user ? (
-            <Link className="account-link account-link-user" href="/mi-cuenta" onClick={() => setOpen(false)}>
-              <span className="account-avatar" aria-hidden="true">
-                {profileImage && !imageFailed ? (
-                  <Image
-                    src={profileImage}
-                    alt=""
-                    width={30}
-                    height={30}
-                    referrerPolicy="no-referrer"
-                    unoptimized
-                    onError={() => setImageFailed(true)}
-                  />
-                ) : getInitials(user.name)}
-              </span>
-              Mi cuenta
-            </Link>
+            <div className="account-session-actions">
+              <Link className="account-link account-link-user" href="/mi-cuenta" onClick={() => setOpen(false)}>
+                <ProfileAvatar name={user.name} image={user.image} />
+                <span>Mi cuenta</span>
+              </Link>
+              <form action={signOutToHome}>
+                <button className="header-sign-out" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión">
+                  <LogOut size={17} />
+                </button>
+              </form>
+            </div>
           ) : (
             <div className="header-login-form" onClick={() => setOpen(false)}>
               <GoogleLoginButton />

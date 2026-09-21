@@ -428,6 +428,10 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
 .account-link-user { display: inline-flex; align-items: center; flex-shrink: 0; gap: 9px; padding: 5px 14px 5px 6px !important; white-space: nowrap; }
 .account-avatar { width: 30px; height: 30px; display: grid; place-items: center; overflow: hidden; border-radius: 50%; color: var(--navy-950); background: white; font-size: .66rem; font-weight: 900; letter-spacing: .02em; }
 .account-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.account-session-actions { display: flex; align-items: center; gap: 7px; }
+.account-session-actions form { margin: 0; }
+.header-sign-out { width: 39px; height: 39px; padding: 0; display: grid; place-items: center; color: white; border: 1px solid rgba(255,255,255,.4); border-radius: 50%; background: rgba(255,255,255,.08); cursor: pointer; transition: background .2s, border-color .2s; }
+.header-sign-out:hover { border-color: rgba(255,255,255,.72); background: rgba(255,255,255,.16); }
 
 /* Mi cuenta: resumen inmediato y dos columnas */
 .account-brand { width: 176px; height: 54px; }
@@ -435,6 +439,8 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
 .account-admin-link { min-height: 40px; padding: 9px 14px; display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; color: white; background: var(--purple); box-shadow: 0 8px 22px rgba(108,43,217,.2); }
 .account-admin-link:hover { background: var(--blue); }
 .account-intro { display: block; padding: 38px 0 24px; }
+.account-intro-identity { display: flex; align-items: center; gap: 20px; }
+.account-profile-avatar { width: 72px; height: 72px; flex: 0 0 72px; color: white; background: linear-gradient(135deg, var(--purple), var(--pink)); box-shadow: 0 12px 28px rgba(108,43,217,.2); font-size: 1.15rem; }
 .account-intro h1 { font-size: clamp(2.7rem, 5vw, 4.8rem); }
 .account-intro-copy > span { max-width: none; margin-top: 10px; overflow-wrap: anywhere; }
 .account-summary-strip { margin: 0 0 20px; display: grid; grid-template-columns: .7fr .7fr 1.6fr; border: 1px solid rgba(18,31,72,.12); border-radius: 20px; background: rgba(255,255,255,.86); box-shadow: 0 16px 44px rgba(26,24,81,.07); backdrop-filter: blur(12px); }
@@ -495,6 +501,8 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
   .account-activity-item { width: 100%; }
   .account-cancel-confirmation { width: 100%; }
   .account-cancel-confirmation > div, .account-cancel-confirmation button { width: 100%; justify-content: center; }
+  .account-intro-identity { align-items: flex-start; gap: 14px; }
+  .account-profile-avatar { width: 56px; height: 56px; flex-basis: 56px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

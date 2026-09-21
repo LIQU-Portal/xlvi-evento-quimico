@@ -7,6 +7,7 @@ import { auth, signOut } from "@/auth";
 import { AccountActivityEnrollments } from "@/components/account-activity-enrollments";
 import { ConfirmationEmailButton } from "@/components/confirmation-email-button";
 import { ParticipantQr } from "@/components/participant-qr";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import { RegistrationForm } from "@/components/registration-form";
 import {
   getAccountType,
@@ -70,10 +71,17 @@ export default async function MiCuentaPage() {
         </header>
 
         <section className="account-intro" aria-labelledby="account-title">
-          <div className="account-intro-copy">
-            <p>Área personal · Mi cuenta</p>
-            <h1 id="account-title">Hola, {firstName}</h1>
-            <span>{email}</span>
+          <div className="account-intro-identity">
+            <ProfileAvatar
+              name={name}
+              image={session.user.image}
+              className="account-profile-avatar"
+            />
+            <div className="account-intro-copy">
+              <p>Área personal · Mi cuenta</p>
+              <h1 id="account-title">Hola, {firstName}</h1>
+              <span>{email}</span>
+            </div>
           </div>
         </section>
 
