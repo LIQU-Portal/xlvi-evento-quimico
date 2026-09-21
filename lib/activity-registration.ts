@@ -1,5 +1,5 @@
 import type { ProgramItem } from "@/config/content";
-import { getSql } from "@/lib/db";
+import { getSql, hasDatabaseConfiguration } from "@/lib/db";
 
 export type ActivityRegistrationStatus =
   | "open"
@@ -203,7 +203,7 @@ export async function syncProgramActivities(
     ]),
   );
 
-  if (!process.env.POSTGRES_URL) return unavailable;
+  if (!hasDatabaseConfiguration()) return unavailable;
 
   try {
     const synced = await Promise.all(
@@ -308,7 +308,7 @@ export async function enrollTeam(input: {
 export async function getParticipantActivityEnrollments(
   email: string,
 ): Promise<ParticipantActivityEnrollment[]> {
-  if (!process.env.POSTGRES_URL) return [];
+  if (!hasDatabaseConfiguration()) return [];
 
   const sql = getSql();
   const rows = await sql.query(
