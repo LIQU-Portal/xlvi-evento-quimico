@@ -89,7 +89,7 @@ function lookup_(rawEmail) {
 
 function lookupMany_(rawEmails) {
   if (!Array.isArray(rawEmails) || rawEmails.length < 1 || rawEmails.length > 5) {
-    throw new Error("EnvÃ­a entre 1 y 5 correos institucionales.");
+    throw new Error("Envía entre 1 y 5 correos institucionales.");
   }
 
   const emails = rawEmails.map(normalizeEmail_);

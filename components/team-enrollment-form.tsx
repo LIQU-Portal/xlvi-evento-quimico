@@ -31,7 +31,7 @@ export function TeamEnrollmentForm({ activityId, minMembers, maxMembers }: { act
 
   return (
     <div className="team-enrollment-form">
-      <div className="team-form-heading"><UsersRound /><div><strong>Inscribe a tu equipo</strong><span>TÃº ya cuentas como integrante 1.</span></div></div>
+      <div className="team-form-heading"><UsersRound /><div><strong>Inscribe a tu equipo</strong><span>Tú ya cuentas como integrante 1.</span></div></div>
       {maxMembers > 1 && <label>Nombre del equipo<input value={teamName} onChange={(event) => setTeamName(event.target.value)} maxLength={80} placeholder="Ej. Los Catalizadores" /></label>}
       <div className="team-email-list">
         {emails.map((email, index) => (
@@ -40,7 +40,7 @@ export function TeamEnrollmentForm({ activityId, minMembers, maxMembers }: { act
       </div>
       {emails.length < maxMembers - 1 && <button className="team-add-member" type="button" onClick={() => { setEmails((current) => [...current, ""]); setValidated(false); }}><Plus /> Agregar integrante</button>}
       <p className="team-size-note">{minMembers === maxMembers ? `${minMembers} integrantes obligatorios` : `De ${minMembers} a ${maxMembers} integrantes`}</p>
-      <button className="activity-registration-button" type="button" disabled={pending || emails.some((email) => !email.trim())} onClick={validated ? submit : validate}>{pending ? "Revisandoâ€¦" : validated ? "Confirmar inscripciÃ³n" : "Validar equipo"}</button>
+      <button className="activity-registration-button" type="button" disabled={pending || emails.some((email) => !email.trim())} onClick={validated ? submit : validate}>{pending ? "Revisando…" : validated ? "Confirmar inscripción" : "Validar equipo"}</button>
       {members.length > 0 && <ul className="team-validation-list">{members.map((member) => <li key={member.email} className={member.valid ? "valid" : "invalid"}>{member.valid ? <CheckCircle2 /> : <XCircle />}<span>{member.valid ? member.name : member.email}</span></li>)}</ul>}
       {feedback && <p className="team-feedback" role="status">{feedback}</p>}
     </div>

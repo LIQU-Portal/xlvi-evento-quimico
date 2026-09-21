@@ -18,7 +18,7 @@ function normalizeTeamEmails(emails: string[]) {
 export async function validateTeamMembers(activityId: number, emails: string[]) {
   const session = await auth();
   const captainEmail = session?.user?.email?.trim().toLowerCase();
-  if (!captainEmail) return { status: "error" as const, message: "Inicia sesiÃ³n para continuar.", members: [] };
+  if (!captainEmail) return { status: "error" as const, message: "Inicia sesión para continuar.", members: [] };
 
   const program = await getProgramFromSheets();
   const activity = program.find((item) => item.id === activityId);
@@ -40,7 +40,7 @@ export async function validateTeamMembers(activityId: number, emails: string[]) 
   const valid = members.every((member) => member.valid);
   return {
     status: valid ? "success" as const : "error" as const,
-    message: valid ? "Equipo validado." : "AlgÃºn integrante debe completar primero su registro general.",
+    message: valid ? "Equipo validado." : "Algún integrante debe completar primero su registro general.",
     members,
   };
 }
@@ -48,11 +48,11 @@ export async function validateTeamMembers(activityId: number, emails: string[]) 
 export async function enrollTeamInActivity(activityId: number, teamName: string, emails: string[]) {
   const session = await auth();
   const captainEmail = session?.user?.email?.trim().toLowerCase();
-  if (!captainEmail) return { status: "error" as const, code: "auth_required", message: "Inicia sesiÃ³n para inscribir al equipo." };
+  if (!captainEmail) return { status: "error" as const, code: "auth_required", message: "Inicia sesión para inscribir al equipo." };
 
   const program = await getProgramFromSheets();
   const activity = program.find((item) => item.id === activityId);
-  if (!activity || activity.capacityUnit !== "equipos") return { status: "error" as const, code: "not_found", message: "El concurso ya no estÃ¡ disponible." };
+  if (!activity || activity.capacityUnit !== "equipos") return { status: "error" as const, code: "not_found", message: "El concurso ya no está disponible." };
 
   const memberEmails = [captainEmail, ...normalizeTeamEmails(emails)];
   const min = activity.minMembers ?? 1;
@@ -69,9 +69,9 @@ export async function enrollTeamInActivity(activityId: number, teamName: string,
 
   const result = await enrollTeam({ activity, teamName: cleanTeamName || members[0].name, members: members.map((member) => ({ id: member.id, email: member.email, name: member.name })) });
   revalidatePath("/"); revalidatePath("/mi-cuenta");
-  if (result.outcome === "confirmed" || result.outcome === "already_enrolled") return { status: "success" as const, code: result.outcome, message: "InscripciÃ³n del equipo confirmada.", remainingCapacity: result.remainingCapacity };
-  const messages: Record<string, string> = { invalid_team: "Revisa el nÃºmero de integrantes.", member_already_enrolled: "Uno de los integrantes ya estÃ¡ inscrito en este concurso.", disabled: "Las inscripciones no estÃ¡n habilitadas.", upcoming: "Las inscripciones todavÃ­a no comienzan.", closed: "Las inscripciones ya cerraron.", full: "El concurso alcanzÃ³ su cupo.", not_found: "El concurso ya no estÃ¡ disponible." };
-  return { status: "error" as const, code: result.outcome, message: messages[result.outcome] ?? "No fue posible completar la inscripciÃ³n.", remainingCapacity: result.remainingCapacity };
+  if (result.outcome === "confirmed" || result.outcome === "already_enrolled") return { status: "success" as const, code: result.outcome, message: "Inscripción del equipo confirmada.", remainingCapacity: result.remainingCapacity };
+  const messages: Record<string, string> = { invalid_team: "Revisa el número de integrantes.", member_already_enrolled: "Uno de los integrantes ya está inscrito en este concurso.", disabled: "Las inscripciones no están habilitadas.", upcoming: "Las inscripciones todavía no comienzan.", closed: "Las inscripciones ya cerraron.", full: "El concurso alcanzó su cupo.", not_found: "El concurso ya no está disponible." };
+  return { status: "error" as const, code: result.outcome, message: messages[result.outcome] ?? "No fue posible completar la inscripción.", remainingCapacity: result.remainingCapacity };
 }
 
 export async function enrollInActivity(activityId: number) {
