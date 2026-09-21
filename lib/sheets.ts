@@ -72,7 +72,12 @@ function getDriveFileId(value: string | undefined): string | undefined {
 }
 
 export async function getProgramFromSheets(): Promise<ProgramItem[]> {
-  const url = process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL;
+  const documentId = process.env.GOOGLE_SHEETS_DOCUMENT_ID?.trim();
+  const url =
+    process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL?.trim() ||
+    (documentId
+      ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(documentId)}/export?format=csv&gid=1001`
+      : undefined);
 
   if (!url) {
     return fallbackProgram();
