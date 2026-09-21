@@ -73,26 +73,29 @@ function getDriveFileId(value: string | undefined): string | undefined {
 
 export async function getProgramFromSheets(): Promise<ProgramItem[]> {
   const documentId = process.env.GOOGLE_SHEETS_DOCUMENT_ID?.trim();
-  const url =
-    process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL?.trim() ||
-    (documentId
-      ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(documentId)}/export?format=csv&gid=1001`
-      : undefined);
+  const url = process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL?.trim();
+  const apiKey = process.env.GOOGLE_SHEETS_API_KEY?.trim();
 
-  if (!url) {
+  if (!url && !(documentId && apiKey)) {
     return fallbackProgram();
   }
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(
+      url ??
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(documentId!)}/values/${encodeURIComponent("Programa!A:U")}?key=${encodeURIComponent(apiKey!)}`,
+      {
       next: { revalidate: 60 },
-    });
+      },
+    );
 
     if (!response.ok) {
       throw new Error(`Google Sheets respondió ${response.status}`);
     }
 
-    const rows = parseCsv(await response.text());
+    const rows = url
+      ? parseCsv(await response.text())
+      : ((await response.json()) as { values?: string[][] }).values ?? [];
     const headerIndex = rows.findIndex(
       (row) =>
         row.includes("id") &&
