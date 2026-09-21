@@ -111,6 +111,7 @@ async function syncActivity(config: ActivityConfig) {
   const sql = getSql();
   const rows = await sql.query(
     `
+      WITH upsert AS (
       INSERT INTO activities (
         id, type, title, capacity, registration_enabled, opens_at, closes_at,
         capacity_unit, min_members, max_members
@@ -126,6 +127,23 @@ async function syncActivity(config: ActivityConfig) {
         min_members = EXCLUDED.min_members,
         max_members = EXCLUDED.max_members,
         updated_at = NOW()
+      RETURNING id
+      )
+      UPDATE activities
+      SET reserved_count = CASE
+            WHEN capacity_unit = 'personas' THEN (
+              SELECT COUNT(*)::INTEGER
+              FROM activity_enrollments
+              WHERE activity_id = activities.id AND status = 'Confirmado'
+            )
+            ELSE (
+              SELECT COUNT(DISTINCT COALESCE(team_id, -activity_enrollments.id))::INTEGER
+              FROM activity_enrollments
+              WHERE activity_id = activities.id AND status = 'Confirmado'
+            )
+          END,
+          updated_at = NOW()
+      WHERE id = (SELECT id FROM upsert)
       RETURNING
         id,
         capacity,
@@ -256,7 +274,11 @@ export async function enrollTeam(input: {
 }) {
   const config = getActivityConfig(input.activity);
 
-  if (!config || config.capacityUnit !== "equipos") {
+  if (
+    !config ||
+    config.type !== "Concurso" ||
+    (config.minMembers <= 1 && config.maxMembers <= 1)
+  ) {
     return { outcome: "not_found" as const, remainingCapacity: null };
   }
 

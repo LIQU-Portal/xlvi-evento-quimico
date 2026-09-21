@@ -94,14 +94,19 @@ DECLARE
   new_team_id BIGINT;
   member_count INTEGER;
   member_index INTEGER;
+  reserved_units INTEGER;
 BEGIN
   SELECT * INTO selected_activity FROM activities
     WHERE id = requested_activity_id FOR UPDATE;
   IF NOT FOUND THEN RETURN QUERY SELECT 'not_found'::TEXT, NULL::INTEGER, NULL::BIGINT; RETURN; END IF;
 
   member_count := COALESCE(array_length(requested_emails, 1), 0);
-  IF selected_activity.capacity_unit <> 'equipos'
-    OR member_count < selected_activity.min_members
+  reserved_units := CASE
+    WHEN selected_activity.capacity_unit = 'personas' THEN member_count
+    ELSE 1
+  END;
+
+  IF member_count < selected_activity.min_members
     OR member_count > selected_activity.max_members
     OR array_length(requested_participant_ids, 1) IS DISTINCT FROM member_count
     OR array_length(requested_names, 1) IS DISTINCT FROM member_count
@@ -114,7 +119,10 @@ BEGIN
   IF NOT selected_activity.registration_enabled THEN RETURN QUERY SELECT 'disabled'::TEXT, selected_activity.capacity - selected_activity.reserved_count, NULL::BIGINT; RETURN; END IF;
   IF selected_activity.opens_at IS NOT NULL AND NOW() < selected_activity.opens_at THEN RETURN QUERY SELECT 'upcoming'::TEXT, selected_activity.capacity - selected_activity.reserved_count, NULL::BIGINT; RETURN; END IF;
   IF selected_activity.closes_at IS NOT NULL AND NOW() >= selected_activity.closes_at THEN RETURN QUERY SELECT 'closed'::TEXT, selected_activity.capacity - selected_activity.reserved_count, NULL::BIGINT; RETURN; END IF;
-  IF selected_activity.reserved_count >= selected_activity.capacity THEN RETURN QUERY SELECT 'full'::TEXT, 0, NULL::BIGINT; RETURN; END IF;
+  IF selected_activity.reserved_count + reserved_units > selected_activity.capacity THEN
+    RETURN QUERY SELECT 'full'::TEXT,
+      selected_activity.capacity - selected_activity.reserved_count, NULL::BIGINT; RETURN;
+  END IF;
 
   IF EXISTS (
     SELECT 1 FROM activity_enrollments
@@ -138,7 +146,7 @@ BEGIN
       cancelled_at = NULL, cancelled_by = NULL, cancellation_reason = NULL;
   END LOOP;
 
-  UPDATE activities SET reserved_count = reserved_count + 1, updated_at = NOW()
+  UPDATE activities SET reserved_count = reserved_count + reserved_units, updated_at = NOW()
     WHERE id = requested_activity_id RETURNING * INTO selected_activity;
   RETURN QUERY SELECT 'confirmed'::TEXT,
     selected_activity.capacity - selected_activity.reserved_count, new_team_id;
@@ -264,6 +272,7 @@ AS $$
 DECLARE
   selected_activity activities%ROWTYPE;
   selected_enrollment activity_enrollments%ROWTYPE;
+  reserved_units INTEGER := 1;
 BEGIN
   SELECT *
     INTO selected_activity
@@ -316,6 +325,14 @@ BEGIN
     RETURN;
   END IF;
 
+  IF selected_enrollment.team_id IS NOT NULL
+    AND selected_activity.capacity_unit = 'personas'
+  THEN
+    SELECT COUNT(*)::INTEGER INTO reserved_units
+    FROM activity_enrollments
+    WHERE team_id = selected_enrollment.team_id AND status = 'Confirmado';
+  END IF;
+
   UPDATE activity_enrollments
     SET status = 'Cancelado',
         updated_at = NOW(),
@@ -333,7 +350,7 @@ BEGIN
   END IF;
 
   UPDATE activities
-    SET reserved_count = GREATEST(reserved_count - 1, 0),
+    SET reserved_count = GREATEST(reserved_count - reserved_units, 0),
         updated_at = NOW()
     WHERE id = requested_activity_id
     RETURNING * INTO selected_activity;
@@ -358,6 +375,7 @@ DECLARE
   selected_activity activities%ROWTYPE;
   selected_enrollment activity_enrollments%ROWTYPE;
   selected_activity_id INTEGER;
+  reserved_units INTEGER := 1;
 BEGIN
   SELECT activity_id
     INTO selected_activity_id
@@ -388,6 +406,14 @@ BEGIN
     RETURN;
   END IF;
 
+  IF selected_enrollment.team_id IS NOT NULL
+    AND selected_activity.capacity_unit = 'personas'
+  THEN
+    SELECT COUNT(*)::INTEGER INTO reserved_units
+    FROM activity_enrollments
+    WHERE team_id = selected_enrollment.team_id AND status = 'Confirmado';
+  END IF;
+
   UPDATE activity_enrollments
     SET status = 'Cancelado',
         updated_at = NOW(),
@@ -405,7 +431,7 @@ BEGIN
   END IF;
 
   UPDATE activities
-    SET reserved_count = GREATEST(reserved_count - 1, 0),
+    SET reserved_count = GREATEST(reserved_count - reserved_units, 0),
         updated_at = NOW()
     WHERE id = selected_activity_id
     RETURNING * INTO selected_activity;

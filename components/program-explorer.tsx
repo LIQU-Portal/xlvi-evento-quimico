@@ -195,7 +195,11 @@ export function ProgramExplorer({
               {(selectedItem.type === "Taller" ||
                 selectedItem.type === "Concurso") && (
                 <>
-                  {selectedAvailability?.capacityUnit === "equipos" && !isSelectedEnrolled && selectedAvailability.status === "open" ? (
+                  {selectedItem.type === "Concurso" &&
+                  ((selectedAvailability?.minMembers ?? 1) > 1 ||
+                    (selectedAvailability?.maxMembers ?? 1) > 1) &&
+                  !isSelectedEnrolled &&
+                  selectedAvailability?.status === "open" ? (
                     <TeamEnrollmentForm
                       activityId={selectedItem.id}
                       minMembers={selectedAvailability.minMembers ?? 1}

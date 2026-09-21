@@ -104,7 +104,7 @@ export async function lookupRegistration(
   }
 
   try {
-    const result = await callAppsScript({ action: "lookup", email });
+    const result = await callAppsScript({ action: "lookup", email }, 30_000);
     const registration = result.registration ?? null;
 
     return {
@@ -129,7 +129,10 @@ export async function lookupRegistration(
 
 export async function lookupRegistrations(emails: string[]) {
   const normalized = emails.map((email) => email.trim().toLowerCase());
-  const result = await callAppsScript({ action: "lookupMany", emails: normalized });
+  const result = await callAppsScript(
+    { action: "lookupMany", emails: normalized },
+    30_000,
+  );
   return result.registrations ?? [];
 }
 

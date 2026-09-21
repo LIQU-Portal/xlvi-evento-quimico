@@ -15,6 +15,17 @@ function normalizeTeamEmails(emails: string[]) {
   return emails.map((email) => email.trim().toLowerCase()).filter(Boolean);
 }
 
+function acceptsTeamRegistration(activity: {
+  type: string;
+  minMembers?: number;
+  maxMembers?: number;
+}) {
+  return (
+    activity.type === "Concurso" &&
+    ((activity.minMembers ?? 1) > 1 || (activity.maxMembers ?? 1) > 1)
+  );
+}
+
 export async function validateTeamMembers(activityId: number, emails: string[]) {
   const session = await auth();
   const captainEmail = session?.user?.email?.trim().toLowerCase();
@@ -22,7 +33,7 @@ export async function validateTeamMembers(activityId: number, emails: string[]) 
 
   const program = await getProgramFromSheets();
   const activity = program.find((item) => item.id === activityId);
-  if (!activity || activity.capacityUnit !== "equipos") {
+  if (!activity || !acceptsTeamRegistration(activity)) {
     return { status: "error" as const, message: "Este concurso no admite equipos.", members: [] };
   }
 
@@ -61,7 +72,7 @@ export async function enrollTeamInActivity(activityId: number, teamName: string,
 
   const program = await getProgramFromSheets();
   const activity = program.find((item) => item.id === activityId);
-  if (!activity || activity.capacityUnit !== "equipos") return { status: "error" as const, code: "not_found", message: "El concurso ya no está disponible." };
+  if (!activity || !acceptsTeamRegistration(activity)) return { status: "error" as const, code: "not_found", message: "El concurso ya no está disponible." };
 
   const memberEmails = [captainEmail, ...normalizeTeamEmails(emails)];
   const min = activity.minMembers ?? 1;
