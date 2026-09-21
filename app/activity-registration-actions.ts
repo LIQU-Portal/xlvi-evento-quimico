@@ -31,18 +31,27 @@ export async function validateTeamMembers(activityId: number, emails: string[]) 
     return { status: "error" as const, message: "No repitas correos.", members: [] };
   }
 
-  const registrations = await lookupRegistrations(memberEmails);
-  const members = registrations.map(({ email, registration }) => ({
-    email,
-    valid: registration?.status === "Confirmado",
-    name: registration?.name ?? "",
-  }));
-  const valid = members.every((member) => member.valid);
-  return {
-    status: valid ? "success" as const : "error" as const,
-    message: valid ? "Equipo validado." : "Algún integrante debe completar primero su registro general.",
-    members,
-  };
+  try {
+    const registrations = await lookupRegistrations(memberEmails);
+    const members = registrations.map(({ email, registration }) => ({
+      email,
+      valid: registration?.status === "Confirmado",
+      name: registration?.name ?? "",
+    }));
+    const valid = members.every((member) => member.valid);
+    return {
+      status: valid ? "success" as const : "error" as const,
+      message: valid ? "Equipo validado." : "Algún integrante debe completar primero su registro general.",
+      members,
+    };
+  } catch (error) {
+    console.error("No fue posible validar los integrantes del equipo:", error);
+    return {
+      status: "error" as const,
+      message: "No fue posible validar el equipo. Intenta nuevamente en unos minutos.",
+      members: [],
+    };
+  }
 }
 
 export async function enrollTeamInActivity(activityId: number, teamName: string, emails: string[]) {
@@ -63,7 +72,13 @@ export async function enrollTeamInActivity(activityId: number, teamName: string,
   const cleanTeamName = teamName.trim();
   if (memberEmails.length > 1 && cleanTeamName.length < 2) return { status: "error" as const, code: "invalid_team", message: "Escribe el nombre del equipo." };
 
-  const registrations = await lookupRegistrations(memberEmails);
+  let registrations: Awaited<ReturnType<typeof lookupRegistrations>>;
+  try {
+    registrations = await lookupRegistrations(memberEmails);
+  } catch (error) {
+    console.error("No fue posible consultar los registros del equipo:", error);
+    return { status: "error" as const, code: "unavailable", message: "No fue posible validar el equipo. Intenta nuevamente en unos minutos." };
+  }
   const members = registrations.map(({ registration }) => registration).filter((registration): registration is NonNullable<typeof registration> => Boolean(registration && registration.status === "Confirmado"));
   if (members.length !== memberEmails.length) return { status: "error" as const, code: "registration_required", message: "Todos deben registrarse primero al evento." };
 
