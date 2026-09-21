@@ -47,6 +47,30 @@ function fallbackProgram(): ProgramItem[] {
   return content.program.map((item) => ({ ...item }));
 }
 
+function parseCheckbox(value: string | undefined): boolean {
+  return ["sí", "si", "true", "1"].includes(
+    String(value ?? "")
+      .trim()
+      .toLowerCase(),
+  );
+}
+
+function getDriveFileId(value: string | undefined): string | undefined {
+  const input = String(value ?? "").trim();
+
+  if (/^[A-Za-z0-9_-]{10,200}$/.test(input)) return input;
+
+  const pathMatch = input.match(/\/d\/([A-Za-z0-9_-]{10,200})/);
+  if (pathMatch) return pathMatch[1];
+
+  try {
+    const fileId = new URL(input).searchParams.get("id") ?? "";
+    return /^[A-Za-z0-9_-]{10,200}$/.test(fileId) ? fileId : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function getProgramFromSheets(): Promise<ProgramItem[]> {
   const url = process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL;
 
@@ -56,7 +80,7 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
 
   try {
     const response = await fetch(url, {
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
 
     if (!response.ok) {
@@ -102,6 +126,10 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
         }
 
         const capacity = row[column("cupo")]?.trim();
+        const flyerFileId = getDriveFileId(row[column("flyerfileid")]);
+        const registrationCapacity = Number(
+          row[column("capacidad")]?.trim(),
+        );
         const date = row[column("fecha")]?.trim();
         const statusValue = row[column("estado")]?.trim().toLowerCase();
 
@@ -122,6 +150,29 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
             row[column("lugar")]?.trim() || "Lugar por confirmar",
           status: statusValue === "confirmado" ? "Confirmado" : "Provisional",
           ...(capacity ? { capacity } : {}),
+          ...(flyerFileId ? { flyerFileId } : {}),
+          ...(row[column("descripcioncompleta")]?.trim()
+            ? {
+                fullDescription: row[column("descripcioncompleta")].trim(),
+              }
+            : {}),
+          ...(Number.isInteger(registrationCapacity) &&
+          registrationCapacity > 0
+            ? { registrationCapacity }
+            : {}),
+          registrationEnabled: parseCheckbox(
+            row[column("inscripcionhabilitada")],
+          ),
+          ...(row[column("aperturaregistro")]?.trim()
+            ? {
+                registrationOpenAt: row[column("aperturaregistro")].trim(),
+              }
+            : {}),
+          ...(row[column("cierreregistro")]?.trim()
+            ? {
+                registrationCloseAt: row[column("cierreregistro")].trim(),
+              }
+            : {}),
         };
       })
       .filter((item): item is ProgramItem => item !== null);

@@ -7,7 +7,11 @@ const allowedDomains = new Set([
 ]);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [Google],
+  providers: [
+    Google({
+      authorization: { params: { scope: "openid email profile" } },
+    }),
+  ],
 
   session: {
     strategy: "jwt",
@@ -25,6 +29,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const domain = email.split("@").at(-1);
 
       return Boolean(domain && allowedDomains.has(domain));
+    },
+    async jwt({ token, profile }) {
+      if (typeof profile?.picture === "string") {
+        token.picture = profile.picture;
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && typeof token.picture === "string") {
+        session.user.image = token.picture;
+      }
+
+      return session;
     },
   },
 });

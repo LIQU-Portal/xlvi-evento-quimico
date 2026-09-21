@@ -2,6 +2,11 @@ import { ArrowUpRight, FlaskConical, Lightbulb, Mic2 } from "lucide-react";
 import { content } from "@/config/content";
 
 const icons = [<Mic2 key="mic" />, <FlaskConical key="flask" />, <Lightbulb key="bulb" />];
+const programLinks = [
+  "/?tipo=conferencia#programa",
+  "/?tipo=taller#programa",
+  "/?tipo=concurso#programa",
+];
 
 export function Activities() {
   return (
@@ -16,7 +21,7 @@ export function Activities() {
               <p>{item.kicker}</p>
               <h3>{item.title}</h3>
               <div className="activity-description">{item.description}</div>
-              <a href="#programa">Ver en el programa <ArrowUpRight /></a>
+              <a href={programLinks[index]}>Ver en el programa <ArrowUpRight /></a>
             </article>
           ))}
         </div>

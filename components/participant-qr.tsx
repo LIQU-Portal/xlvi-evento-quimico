@@ -33,6 +33,7 @@ export function ParticipantQr({ participantId, token }: ParticipantQrProps) {
 
   return (
     <section className="participant-qr" aria-labelledby="participant-qr-title">
+      <h3 className="sr-only" id="participant-qr-title">Código QR del evento</h3>
       <div ref={qrContainerRef} className="participant-qr-image">
         <QRCodeCanvas
           value={token}
@@ -44,12 +45,7 @@ export function ParticipantQr({ participantId, token }: ParticipantQrProps) {
       </div>
 
       <div className="participant-qr-copy">
-        <span>Acceso personal</span>
-        <h3 id="participant-qr-title">Tu código QR</h3>
-        <p>
-          Preséntalo para registrar tu acceso y asistencia. Es único,
-          personal e intransferible.
-        </p>
+        <p>Tu QR es personal. Tenlo listo al ingresar.</p>
         <button type="button" onClick={downloadQr}>
           <Download size={17} /> Descargar QR
         </button>
