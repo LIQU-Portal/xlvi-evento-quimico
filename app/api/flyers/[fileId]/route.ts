@@ -1,4 +1,5 @@
 const DRIVE_FILE_ID = /^[A-Za-z0-9_-]{10,200}$/;
+const MAX_FLYER_BYTES = 10 * 1024 * 1024;
 
 export async function GET(
   _request: Request,
@@ -19,9 +20,22 @@ export async function GET(
     return new Response("Flyer no disponible.", { status: 404 });
   }
 
-  return new Response(driveResponse.body, {
+  const declaredSize = Number(driveResponse.headers.get("content-length"));
+
+  if (Number.isFinite(declaredSize) && declaredSize > MAX_FLYER_BYTES) {
+    return new Response("El flyer supera el tamaño permitido.", { status: 413 });
+  }
+
+  const flyer = await driveResponse.arrayBuffer();
+
+  if (flyer.byteLength > MAX_FLYER_BYTES) {
+    return new Response("El flyer supera el tamaño permitido.", { status: 413 });
+  }
+
+  return new Response(flyer, {
     headers: {
       "Content-Type": contentType,
+      "Content-Length": String(flyer.byteLength),
       "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
       "CDN-Cache-Control":
         "public, s-maxage=604800, stale-while-revalidate=2592000",
