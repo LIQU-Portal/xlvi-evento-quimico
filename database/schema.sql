@@ -1,3 +1,25 @@
+CREATE TABLE IF NOT EXISTS participants (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  account_type TEXT NOT NULL CHECK (account_type IN ('Alumno', 'Profesor')),
+  role TEXT NOT NULL CHECK (role IN ('Alumno', 'Profesor', 'Staff')),
+  institutional_code TEXT NOT NULL,
+  affiliation TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('Confirmado', 'Cancelado')),
+  qr_token TEXT,
+  confirmation_email_sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- statement-breakpoint
+
+CREATE INDEX IF NOT EXISTS participants_email_lower_idx
+  ON participants (LOWER(email));
+
+-- statement-breakpoint
+
 CREATE TABLE IF NOT EXISTS activities (
   id INTEGER PRIMARY KEY,
   type TEXT NOT NULL CHECK (type IN ('Taller', 'Concurso')),

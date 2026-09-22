@@ -37,6 +37,24 @@ REGISTRATION_API_SECRET=el-mismo-secreto-de-apps-script
 
 Nunca publiques el secreto ni agregues `.env.local` a Git.
 
+## Copia rápida en Neon
+
+La aplicación conserva Google Sheets como respaldo del registro general y usa
+una copia privada en Neon para cargar `Mi cuenta` sin esperar a Apps Script.
+
+Después de publicar una nueva versión de `Code.gs`, ejecuta una vez:
+
+```powershell
+pnpm db:migrate
+pnpm db:sync-participants
+```
+
+`listRegistrations` solo responde a solicitudes que incluyan
+`REGISTRATION_API_SECRET`. El comando no imprime nombres, correos ni códigos;
+únicamente informa cuántos registros fueron sincronizados. Los registros nuevos
+se copian automáticamente en Neon, por lo que no es necesario ejecutar el
+comando diariamente.
+
 ## Lista de staff
 
 En la pestaña `Staff` utiliza estas columnas:

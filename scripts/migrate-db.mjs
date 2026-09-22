@@ -24,8 +24,8 @@ for (const statement of statements) {
 }
 
 const tables = await sql.query(
-  "SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_name IN ($2, $3, $4) ORDER BY table_name",
-  ["public", "activities", "activity_enrollments", "activity_teams"],
+  "SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_name IN ($2, $3, $4, $5) ORDER BY table_name",
+  ["public", "activities", "activity_enrollments", "activity_teams", "participants"],
 );
 
 console.log(`Migración completada: ${statements.length} sentencias aplicadas.`);

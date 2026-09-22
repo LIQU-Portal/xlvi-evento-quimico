@@ -47,6 +47,10 @@ function doPost(event) {
       return json_(lookupMany_(payload.emails));
     }
 
+    if (payload.action === "listRegistrations") {
+      return json_(listRegistrations_());
+    }
+
     if (payload.action === "register") {
       lock.waitLock(10000);
       return json_(register_(payload));
@@ -111,6 +115,7 @@ function lookupMany_(rawEmails) {
       institutionalCode: values[row][7], affiliation: values[row][8],
       status: values[row][9], confirmationEmailSentAt: values[row][10] || "",
     };
+    byEmail[email].qrToken = createQrToken_(byEmail[email].id);
   }
 
   return {
@@ -120,6 +125,38 @@ function lookupMany_(rawEmails) {
       return { email: email, registration: registration };
     }),
   };
+}
+
+function listRegistrations_() {
+  const spreadsheet = getSpreadsheet_();
+  const registrations = ensureSheet_(
+    spreadsheet,
+    REGISTRATIONS_SHEET,
+    REGISTRATION_HEADERS,
+  );
+  const values = registrations.getDataRange().getDisplayValues();
+  const result = [];
+
+  for (let row = 1; row < values.length; row += 1) {
+    if (!String(values[row][3] || "").trim()) continue;
+
+    const registration = {
+      id: values[row][0],
+      createdAt: values[row][1],
+      email: values[row][3],
+      name: values[row][4],
+      accountType: values[row][5],
+      role: values[row][6],
+      institutionalCode: values[row][7],
+      affiliation: values[row][8],
+      status: values[row][9],
+      confirmationEmailSentAt: values[row][10] || "",
+    };
+    registration.qrToken = createQrToken_(registration.id);
+    result.push(registration);
+  }
+
+  return { ok: true, registrations: result };
 }
 
 function register_(payload) {
