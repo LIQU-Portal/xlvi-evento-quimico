@@ -1,5 +1,5 @@
 const DRIVE_FILE_ID = /^[A-Za-z0-9_-]{10,200}$/;
-const MAX_FLYER_BYTES = 10 * 1024 * 1024;
+const MAX_FLYER_BYTES = 4 * 1024 * 1024;
 
 export async function GET(
   _request: Request,
