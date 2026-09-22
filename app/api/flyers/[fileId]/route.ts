@@ -12,7 +12,7 @@ export async function GET(
 
   const driveResponse = await fetch(
     `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`,
-    { next: { revalidate: 3600 } },
+    { next: { revalidate: 86400 } },
   );
   const contentType = driveResponse.headers.get("content-type") ?? "";
 
@@ -23,7 +23,9 @@ export async function GET(
   return new Response(driveResponse.body, {
     headers: {
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+      "CDN-Cache-Control":
+        "public, s-maxage=604800, stale-while-revalidate=2592000",
     },
   });
 }

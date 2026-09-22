@@ -136,7 +136,12 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
 .activity-modal-close { position: absolute; top: 16px; right: 16px; z-index: 2; display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 50%; color: var(--navy-950); background: rgba(255,255,255,.92); cursor: pointer; box-shadow: 0 8px 24px rgba(18,31,72,.16); }
 .activity-modal-close svg { width: 20px; height: 20px; }
 .activity-modal-flyer { position: relative; min-height: 650px; overflow: hidden; border-radius: 28px 0 0 28px; background: linear-gradient(145deg, #202260, #7928ca); }
-.activity-modal-flyer img { object-fit: contain; background: #edf0fa; }
+.activity-modal-flyer img { z-index: 1; object-fit: contain; background: #edf0fa; transition: opacity .18s ease; }
+.activity-modal-flyer img.is-loading { opacity: 0; }
+.activity-modal-flyer img.is-loaded { opacity: 1; }
+.activity-modal-image-loading { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 32px; color: #5a6380; background: #edf0fa; font-size: .76rem; font-weight: 700; letter-spacing: .04em; }
+.activity-modal-image-loading span { width: 30px; height: 30px; border: 3px solid rgba(108,43,217,.18); border-top-color: #6c2bd9; border-radius: 50%; animation: flyer-loading-spin .8s linear infinite; }
+@keyframes flyer-loading-spin { to { transform: rotate(360deg); } }
 .activity-modal-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; text-align: center; color: white; background: radial-gradient(circle at 25% 20%, rgba(255,120,183,.8), transparent 30%), linear-gradient(145deg, #151d55, #5426a8); }
 .activity-modal-placeholder span { font-size: .72rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
 .activity-modal-placeholder strong { font-family: var(--font-title); font-size: clamp(1.8rem, 4vw, 3.2rem); }

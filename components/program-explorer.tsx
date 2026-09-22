@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, MapPin, UserRound, UsersRound, X } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { enrollInActivity } from "@/app/activity-registration-actions";
 import type { ProgramItem, ProgramType } from "@/config/content";
 import type {
@@ -39,6 +39,10 @@ export function ProgramExplorer({
   const router = useRouter();
   const [active, setActive] = useState<(typeof filters)[number]>(initialFilter);
   const [selectedItem, setSelectedItem] = useState<ProgramItem | null>(null);
+  const [loadedFlyerIds, setLoadedFlyerIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const flyerPreloads = useRef(new Map<string, HTMLImageElement>());
   const [enrollmentFeedback, setEnrollmentFeedback] = useState<{
     status: "success" | "error";
     code: string;
@@ -52,6 +56,40 @@ export function ProgramExplorer({
   const isSelectedEnrolled = selectedItem
     ? enrolledActivityIds.includes(selectedItem.id)
     : false;
+
+  const markFlyerLoaded = (fileId: string) => {
+    setLoadedFlyerIds((current) => {
+      if (current.has(fileId)) return current;
+      const next = new Set(current);
+      next.add(fileId);
+      return next;
+    });
+  };
+
+  const preloadFlyer = (fileId?: string) => {
+    if (!fileId || typeof window === "undefined" || flyerPreloads.current.has(fileId)) {
+      return;
+    }
+
+    const src = `/api/flyers/${encodeURIComponent(fileId)}`;
+    const { props } = getImageProps({
+      src,
+      alt: "",
+      width: 520,
+      height: 650,
+      sizes: "(max-width: 720px) 92vw, 520px",
+      quality: 70,
+    });
+    const preload = new window.Image();
+
+    preload.decoding = "async";
+    preload.fetchPriority = "high";
+    if (props.srcSet) preload.srcset = props.srcSet;
+    if (props.sizes) preload.sizes = props.sizes;
+    preload.onload = () => markFlyerLoaded(fileId);
+    preload.src = props.src;
+    flyerPreloads.current.set(fileId, preload);
+  };
 
   const openDetails = (item: ProgramItem) => {
     setEnrollmentFeedback(null);
@@ -121,6 +159,9 @@ export function ProgramExplorer({
               <button
                 className="program-details-button"
                 type="button"
+                onPointerEnter={() => preloadFlyer(item.flyerFileId)}
+                onFocus={() => preloadFlyer(item.flyerFileId)}
+                onTouchStart={() => preloadFlyer(item.flyerFileId)}
                 onClick={() => openDetails(item)}
               >
                 Más información <ArrowUpRight />
@@ -158,12 +199,29 @@ export function ProgramExplorer({
 
             <div className="activity-modal-flyer">
               {selectedItem.flyerFileId ? (
-                <Image
-                  src={`/api/flyers/${encodeURIComponent(selectedItem.flyerFileId)}`}
-                  alt={`Flyer de ${selectedItem.title}`}
-                  fill
-                  sizes="(max-width: 720px) 92vw, 520px"
-                />
+                <>
+                  {!loadedFlyerIds.has(selectedItem.flyerFileId) && (
+                    <div className="activity-modal-image-loading" role="status">
+                      <span aria-hidden="true" />
+                      Cargando flyer…
+                    </div>
+                  )}
+                  <Image
+                    className={
+                      loadedFlyerIds.has(selectedItem.flyerFileId)
+                        ? "is-loaded"
+                        : "is-loading"
+                    }
+                    src={`/api/flyers/${encodeURIComponent(selectedItem.flyerFileId)}`}
+                    alt={`Flyer de ${selectedItem.title}`}
+                    fill
+                    sizes="(max-width: 720px) 92vw, 520px"
+                    quality={70}
+                    loading="eager"
+                    fetchPriority="high"
+                    onLoad={() => markFlyerLoaded(selectedItem.flyerFileId!)}
+                  />
+                </>
               ) : (
                 <div className="activity-modal-placeholder">
                   <span>{selectedItem.type}</span>
