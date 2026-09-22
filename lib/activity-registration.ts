@@ -109,9 +109,8 @@ function getActivityConfig(item: ProgramItem): ActivityConfig | null {
 
 async function syncActivity(config: ActivityConfig) {
   const sql = getSql();
-  const rows = await sql.query(
+  await sql.query(
     `
-      WITH upsert AS (
       INSERT INTO activities (
         id, type, title, capacity, registration_enabled, opens_at, closes_at,
         capacity_unit, min_members, max_members
@@ -128,7 +127,23 @@ async function syncActivity(config: ActivityConfig) {
         max_members = EXCLUDED.max_members,
         updated_at = NOW()
       RETURNING id
-      )
+    `,
+    [
+      config.id,
+      config.type,
+      config.title,
+      config.capacity,
+      config.registrationEnabled,
+      config.opensAt,
+      config.closesAt,
+      config.capacityUnit,
+      config.minMembers,
+      config.maxMembers,
+    ],
+  );
+
+  const rows = await sql.query(
+    `
       UPDATE activities
       SET reserved_count = CASE
             WHEN capacity_unit = 'personas' THEN (
@@ -143,7 +158,7 @@ async function syncActivity(config: ActivityConfig) {
             )
           END,
           updated_at = NOW()
-      WHERE id = (SELECT id FROM upsert)
+      WHERE id = $1
       RETURNING
         id,
         capacity,
@@ -162,18 +177,7 @@ async function syncActivity(config: ActivityConfig) {
           ELSE 'open'
         END AS status
     `,
-    [
-      config.id,
-      config.type,
-      config.title,
-      config.capacity,
-      config.registrationEnabled,
-      config.opensAt,
-      config.closesAt,
-      config.capacityUnit,
-      config.minMembers,
-      config.maxMembers,
-    ],
+    [config.id],
   );
 
   return rows[0] as {
