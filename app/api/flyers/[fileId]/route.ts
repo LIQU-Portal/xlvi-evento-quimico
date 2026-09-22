@@ -12,7 +12,6 @@ export async function GET(
 
   const driveResponse = await fetch(
     `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`,
-    { next: { revalidate: 86400 } },
   );
   const contentType = driveResponse.headers.get("content-type") ?? "";
 
