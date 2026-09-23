@@ -188,14 +188,16 @@ export function ProgramExplorer({
             aria-modal="true"
             aria-labelledby="activity-modal-title"
           >
-            <button
-              className="activity-modal-close"
-              type="button"
-              aria-label="Cerrar información"
-              onClick={closeDetails}
-            >
-              <X />
-            </button>
+            <div className="activity-modal-toolbar">
+              <button
+                className="activity-modal-close"
+                type="button"
+                aria-label="Cerrar información"
+                onClick={closeDetails}
+              >
+                <X />
+              </button>
+            </div>
 
             <div className="activity-modal-flyer">
               {selectedItem.flyerFileId ? (
@@ -234,7 +236,18 @@ export function ProgramExplorer({
               <span className={`type-pill type-${selectedItem.type.toLowerCase()}`}>
                 {selectedItem.type}
               </span>
-              <h3 id="activity-modal-title">{selectedItem.title}</h3>
+              <h3
+                id="activity-modal-title"
+                className={
+                  selectedItem.title.length > 42
+                    ? "activity-modal-title is-very-long"
+                    : selectedItem.title.length > 26
+                      ? "activity-modal-title is-long"
+                      : "activity-modal-title"
+                }
+              >
+                {selectedItem.title}
+              </h3>
               <p>{selectedItem.fullDescription || selectedItem.description}</p>
               <div className="activity-modal-meta">
                 <span><UserRound /> {selectedItem.person}</span>
