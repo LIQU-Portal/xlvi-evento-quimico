@@ -20,6 +20,12 @@ CREATE INDEX IF NOT EXISTS participants_email_lower_idx
 
 -- statement-breakpoint
 
+ALTER TABLE participants
+  ADD COLUMN IF NOT EXISTS staff_type TEXT
+  CHECK (staff_type IS NULL OR staff_type IN ('Alumno', 'Académico'));
+
+-- statement-breakpoint
+
 CREATE TABLE IF NOT EXISTS activities (
   id INTEGER PRIMARY KEY,
   type TEXT NOT NULL CHECK (type IN ('Taller', 'Concurso')),

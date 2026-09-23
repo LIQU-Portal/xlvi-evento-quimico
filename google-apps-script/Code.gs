@@ -12,8 +12,9 @@ const REGISTRATION_HEADERS = [
   "affiliation",
   "status",
   "confirmationEmailSentAt",
+  "staffType",
 ];
-const STAFF_HEADERS = ["email", "name", "active"];
+const STAFF_HEADERS = ["email", "name", "active", "staffType"];
 const DEFAULT_EVENT_BASE_URL = "https://xlvi-evento-quimico.vercel.app";
 
 function setupSheets() {
@@ -83,11 +84,15 @@ function lookup_(rawEmail) {
   const staff = ensureSheet_(spreadsheet, STAFF_SHEET, STAFF_HEADERS);
 
   const entry = findRegistrationEntry_(registrations, email);
+  const staffInfo = getStaffInfo_(staff, email);
+
+  if (entry) applyStaffInfo_(entry.registration, staffInfo);
 
   return {
     ok: true,
     registration: entry ? entry.registration : null,
-    isStaff: isStaff_(staff, email),
+    isStaff: staffInfo.isStaff,
+    staffType: staffInfo.staffType,
   };
 }
 
@@ -104,6 +109,7 @@ function lookupMany_(rawEmails) {
   const spreadsheet = getSpreadsheet_();
   const registrations = ensureSheet_(spreadsheet, REGISTRATIONS_SHEET, REGISTRATION_HEADERS);
   const values = registrations.getDataRange().getDisplayValues();
+  const staff = ensureSheet_(spreadsheet, STAFF_SHEET, STAFF_HEADERS);
   const byEmail = {};
 
   for (let row = 1; row < values.length; row += 1) {
@@ -114,7 +120,9 @@ function lookupMany_(rawEmails) {
       name: values[row][4], accountType: values[row][5], role: values[row][6],
       institutionalCode: values[row][7], affiliation: values[row][8],
       status: values[row][9], confirmationEmailSentAt: values[row][10] || "",
+      staffType: values[row][11] || "",
     };
+    applyStaffInfo_(byEmail[email], getStaffInfo_(staff, email));
     byEmail[email].qrToken = createQrToken_(byEmail[email].id);
   }
 
@@ -135,6 +143,7 @@ function listRegistrations_() {
     REGISTRATION_HEADERS,
   );
   const values = registrations.getDataRange().getDisplayValues();
+  const staff = ensureSheet_(spreadsheet, STAFF_SHEET, STAFF_HEADERS);
   const result = [];
 
   for (let row = 1; row < values.length; row += 1) {
@@ -151,7 +160,9 @@ function listRegistrations_() {
       affiliation: values[row][8],
       status: values[row][9],
       confirmationEmailSentAt: values[row][10] || "",
+      staffType: values[row][11] || "",
     };
+    applyStaffInfo_(registration, getStaffInfo_(staff, registration.email));
     registration.qrToken = createQrToken_(registration.id);
     result.push(registration);
   }
@@ -177,12 +188,15 @@ function register_(payload) {
   );
   const staff = ensureSheet_(spreadsheet, STAFF_SHEET, STAFF_HEADERS);
   const existingEntry = findRegistrationEntry_(registrations, email);
+  const staffInfo = getStaffInfo_(staff, email);
 
   if (existingEntry) {
+    applyStaffInfo_(existingEntry.registration, staffInfo);
     return {
       ok: true,
       registration: existingEntry.registration,
       isStaff: existingEntry.registration.role === "Staff",
+      staffType: existingEntry.registration.staffType,
       alreadyRegistered: true,
       confirmationEmailSent: Boolean(
         existingEntry.registration.confirmationEmailSentAt,
@@ -191,7 +205,7 @@ function register_(payload) {
   }
 
   const now = new Date();
-  const role = isStaff_(staff, email) ? "Staff" : accountType;
+  const role = staffInfo.isStaff ? "Staff" : accountType;
   const registration = {
     id: createParticipantId_(),
     createdAt: now.toISOString(),
@@ -203,6 +217,7 @@ function register_(payload) {
     affiliation: affiliation,
     status: "Confirmado",
     confirmationEmailSentAt: "",
+    staffType: staffInfo.staffType,
   };
   registration.qrToken = createQrToken_(registration.id);
 
@@ -218,12 +233,14 @@ function register_(payload) {
     safeCellText_(registration.affiliation),
     safeCellText_(registration.status),
     "",
+    safeCellText_(registration.staffType),
   ]);
 
   return {
     ok: true,
     registration: registration,
     isStaff: role === "Staff",
+    staffType: registration.staffType,
     alreadyRegistered: false,
     confirmationEmailSent: false,
   };
@@ -245,6 +262,7 @@ function findRegistrationEntry_(sheet, email) {
         affiliation: values[row][8],
         status: values[row][9],
         confirmationEmailSentAt: values[row][10] || "",
+        staffType: values[row][11] || "",
       };
       registration.qrToken = createQrToken_(registration.id);
 
@@ -374,17 +392,79 @@ function getEventBaseUrl_() {
   return String(configuredUrl || DEFAULT_EVENT_BASE_URL).replace(/\/$/, "");
 }
 
-function isStaff_(sheet, email) {
+function getStaffInfo_(sheet, email) {
   const values = sheet.getDataRange().getDisplayValues();
 
   for (let row = 1; row < values.length; row += 1) {
-    if (normalizeEmail_(values[row][0]) !== email) continue;
+    const staffEmail = String(values[row][0] || "").trim();
+    if (!staffEmail || normalizeEmail_(staffEmail) !== email) continue;
 
     const active = String(values[row][2]).trim().toLowerCase();
-    return ["si", "sí", "true", "1", "activo"].includes(active);
+    const isActive = ["si", "sí", "true", "1", "activo"].includes(active);
+
+    if (!isActive) return { isStaff: false, staffType: "" };
+
+    return {
+      isStaff: true,
+      staffType: normalizeStaffType_(values[row][3]),
+    };
   }
 
-  return false;
+  return { isStaff: false, staffType: "" };
+}
+
+function normalizeStaffType_(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if (normalized === "alumno") return "Alumno";
+  if (normalized === "académico" || normalized === "academico") {
+    return "Académico";
+  }
+
+  throw new Error("El staff activo debe tener staffType Alumno o Académico.");
+}
+
+function applyStaffInfo_(registration, staffInfo) {
+  if (staffInfo.isStaff) {
+    registration.role = "Staff";
+    registration.staffType = staffInfo.staffType;
+    return registration;
+  }
+
+  if (registration.role === "Staff") registration.role = registration.accountType;
+  registration.staffType = "";
+  return registration;
+}
+
+function syncStaffClassifications() {
+  const spreadsheet = getSpreadsheet_();
+  const registrations = ensureSheet_(
+    spreadsheet,
+    REGISTRATIONS_SHEET,
+    REGISTRATION_HEADERS,
+  );
+  const staff = ensureSheet_(spreadsheet, STAFF_SHEET, STAFF_HEADERS);
+  const values = registrations.getDataRange().getDisplayValues();
+  const roleColumn = REGISTRATION_HEADERS.indexOf("role") + 1;
+  const staffTypeColumn = REGISTRATION_HEADERS.indexOf("staffType") + 1;
+  let updated = 0;
+
+  for (let row = 1; row < values.length; row += 1) {
+    const email = String(values[row][3] || "").trim();
+    if (!email) continue;
+
+    const accountType = values[row][5] === "Alumno" ? "Alumno" : "Profesor";
+    const staffInfo = getStaffInfo_(staff, email);
+    const role = staffInfo.isStaff ? "Staff" : accountType;
+
+    registrations.getRange(row + 1, roleColumn).setValue(role);
+    registrations
+      .getRange(row + 1, staffTypeColumn)
+      .setValue(staffInfo.staffType);
+    updated += 1;
+  }
+
+  Logger.log(`Clasificación de staff actualizada en ${updated} registros.`);
 }
 
 function createParticipantId_() {

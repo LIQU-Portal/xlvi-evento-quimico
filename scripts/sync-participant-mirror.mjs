@@ -39,15 +39,16 @@ function isoDate(value, fallback = new Date().toISOString()) {
 async function saveRegistration(registration) {
   await sql.query(
     `INSERT INTO participants (
-       id, email, name, account_type, role, institutional_code, affiliation,
+       id, email, name, account_type, role, staff_type, institutional_code, affiliation,
        status, qr_token, confirmation_email_sent_at, created_at, updated_at
      ) VALUES (
-       $1, LOWER($2), $3, $4, $5, $6, $7, $8, $9,
-       NULLIF($10, '')::TIMESTAMPTZ, $11::TIMESTAMPTZ, NOW()
+       $1, LOWER($2), $3, $4, $5, NULLIF($6, ''), $7, $8, $9, $10,
+       NULLIF($11, '')::TIMESTAMPTZ, $12::TIMESTAMPTZ, NOW()
      )
      ON CONFLICT (email) DO UPDATE SET
        id = EXCLUDED.id, name = EXCLUDED.name,
        account_type = EXCLUDED.account_type, role = EXCLUDED.role,
+       staff_type = EXCLUDED.staff_type,
        institutional_code = EXCLUDED.institutional_code,
        affiliation = EXCLUDED.affiliation, status = EXCLUDED.status,
        qr_token = COALESCE(EXCLUDED.qr_token, participants.qr_token),
@@ -64,6 +65,9 @@ async function saveRegistration(registration) {
       ["Alumno", "Profesor", "Staff"].includes(registration.role)
         ? registration.role
         : "Profesor",
+      ["Alumno", "Académico"].includes(registration.staffType)
+        ? registration.staffType
+        : "",
       registration.institutionalCode,
       registration.affiliation,
       registration.status === "Cancelado" ? "Cancelado" : "Confirmado",

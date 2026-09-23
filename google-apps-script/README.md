@@ -59,8 +59,15 @@ comando diariamente.
 
 En la pestaña `Staff` utiliza estas columnas:
 
-| email | name | active |
-| --- | --- | --- |
-| persona@alumnos.udg.mx | Nombre de la persona | Sí |
+| email | name | active | staffType |
+| --- | --- | --- | --- |
+| persona@alumnos.udg.mx | Nombre de la persona | Sí | Alumno |
 
-La columna `active` acepta `Sí`, `true`, `1` o `activo`. Si el correo aparece activo, su rol será `Staff`, aunque su dominio sea de alumnos o académicos.
+La columna `active` acepta `Sí`, `true`, `1` o `activo`. `staffType` acepta
+únicamente `Alumno` o `Académico`. La clasificación es explícita y no se deduce
+del dominio del correo.
+
+Después de modificar la lista, ejecuta manualmente `setupSheets` y después
+`syncStaffClassifications` para actualizar `role` y `staffType` en los registros
+existentes. Publica una nueva versión de la aplicación web y sincroniza Neon con
+`pnpm db:migrate` y `pnpm db:sync-participants`.

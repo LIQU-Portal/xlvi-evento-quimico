@@ -4,6 +4,7 @@ import { getSql, hasDatabaseConfiguration } from "@/lib/db";
 
 export type AccountType = "Alumno" | "Profesor";
 export type ParticipantRole = AccountType | "Staff";
+export type StaffType = "Alumno" | "Académico";
 
 export type EventRegistration = {
   id: string;
@@ -12,6 +13,7 @@ export type EventRegistration = {
   name: string;
   accountType: AccountType;
   role: ParticipantRole;
+  staffType?: StaffType;
   institutionalCode: string;
   affiliation: string;
   status: "Confirmado" | "Cancelado";
@@ -59,6 +61,9 @@ function registrationFromRow(row: Record<string, unknown>): EventRegistration {
       row.role === "Staff" || row.role === "Alumno"
         ? row.role
         : "Profesor",
+    ...(row.staff_type === "Alumno" || row.staff_type === "Académico"
+      ? { staffType: row.staff_type }
+      : {}),
     institutionalCode: String(row.institutional_code),
     affiliation: String(row.affiliation),
     status: row.status === "Cancelado" ? "Cancelado" : "Confirmado",
@@ -76,7 +81,7 @@ function registrationFromRow(row: Record<string, unknown>): EventRegistration {
 async function findMirroredRegistration(email: string) {
   const sql = getSql();
   const rows = await sql.query(
-    `SELECT id, created_at, email, name, account_type, role,
+    `SELECT id, created_at, email, name, account_type, role, staff_type,
             institutional_code, affiliation, status, qr_token,
             confirmation_email_sent_at
        FROM participants
@@ -95,7 +100,7 @@ async function findMirroredRegistrations(emails: string[]) {
 
   const sql = getSql();
   const rows = await sql.query(
-    `SELECT id, created_at, email, name, account_type, role,
+    `SELECT id, created_at, email, name, account_type, role, staff_type,
             institutional_code, affiliation, status, qr_token,
             confirmation_email_sent_at
        FROM participants
@@ -119,17 +124,18 @@ async function mirrorRegistration(registration: EventRegistration) {
   const sql = getSql();
   await sql.query(
     `INSERT INTO participants (
-       id, email, name, account_type, role, institutional_code, affiliation,
+       id, email, name, account_type, role, staff_type, institutional_code, affiliation,
        status, qr_token, confirmation_email_sent_at, created_at, updated_at
      ) VALUES (
-       $1, LOWER($2), $3, $4, $5, $6, $7, $8, $9,
-       NULLIF($10, '')::TIMESTAMPTZ, $11::TIMESTAMPTZ, NOW()
+       $1, LOWER($2), $3, $4, $5, NULLIF($6, ''), $7, $8, $9, $10,
+       NULLIF($11, '')::TIMESTAMPTZ, $12::TIMESTAMPTZ, NOW()
      )
      ON CONFLICT (email) DO UPDATE SET
        id = EXCLUDED.id,
        name = EXCLUDED.name,
        account_type = EXCLUDED.account_type,
        role = EXCLUDED.role,
+       staff_type = EXCLUDED.staff_type,
        institutional_code = EXCLUDED.institutional_code,
        affiliation = EXCLUDED.affiliation,
        status = EXCLUDED.status,
@@ -146,6 +152,7 @@ async function mirrorRegistration(registration: EventRegistration) {
       registration.name,
       registration.accountType,
       registration.role,
+      registration.staffType ?? "",
       registration.institutionalCode,
       registration.affiliation,
       registration.status,
