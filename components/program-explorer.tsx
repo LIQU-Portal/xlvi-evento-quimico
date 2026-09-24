@@ -3,7 +3,7 @@
 import Image, { getImageProps } from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, MapPin, UserRound, UsersRound, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, useTransition, type Ref } from "react";
 import { enrollInActivity } from "@/app/activity-registration-actions";
 import type { ProgramItem, ProgramType } from "@/config/content";
 import type {
@@ -13,6 +13,8 @@ import type {
 import { TeamEnrollmentForm } from "@/components/team-enrollment-form";
 
 const filters: Array<"Todo" | ProgramType> = ["Todo", "Conferencia", "Taller", "Concurso", "Actividad"];
+
+export type ProgramExplorerHandle = { openActivity: (item: ProgramItem) => void };
 
 function getRegistrationLabel(availability?: ActivityAvailability) {
   if (!availability || availability.status === "unavailable") {
@@ -26,11 +28,13 @@ function getRegistrationLabel(availability?: ActivityAvailability) {
 }
 
 export function ProgramExplorer({
+  ref,
   items,
   activityAvailability,
   enrolledActivityIds,
   initialFilter,
 }: {
+  ref?: Ref<ProgramExplorerHandle>;
   items: ProgramItem[];
   activityAvailability: ActivityAvailabilityMap;
   enrolledActivityIds: number[];
@@ -102,6 +106,14 @@ export function ProgramExplorer({
     setSelectedItem(null);
   };
 
+  useImperativeHandle(ref, () => ({
+    openActivity(item) {
+      setActive("Todo");
+      preloadFlyer(item.flyerFileId);
+      openDetails(item);
+    },
+  }));
+
   const submitEnrollment = () => {
     if (
       !selectedItem ||
@@ -120,10 +132,20 @@ export function ProgramExplorer({
     if (!selectedItem) return;
 
     const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = document.querySelector<HTMLElement>(".activity-modal");
+    dialog?.querySelector<HTMLButtonElement>(".activity-modal-close")?.focus({ preventScroll: true });
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isPending) {
         setEnrollmentFeedback(null);
         setSelectedItem(null);
+      }
+      if (event.key === "Tab" && dialog) {
+        const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'));
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }
     };
 
@@ -133,6 +155,7 @@ export function ProgramExplorer({
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
+      previousFocus?.focus({ preventScroll: true });
     };
   }, [selectedItem, isPending]);
 
@@ -250,6 +273,7 @@ export function ProgramExplorer({
               </h3>
               <p>{selectedItem.fullDescription || selectedItem.description}</p>
               <div className="activity-modal-meta">
+                <span>{selectedItem.date || selectedItem.day} · {selectedItem.time}</span>
                 <span><UserRound /> {selectedItem.person}</span>
                 <span><MapPin /> {selectedItem.place}</span>
                 {(selectedItem.type === "Taller" ||
