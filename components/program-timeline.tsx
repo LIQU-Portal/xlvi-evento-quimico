@@ -10,7 +10,7 @@ export function ProgramTimeline({ occurrences, onOpen }: {
   onOpen: (item: ProgramItem) => void;
 }) {
   const [selected, setSelected] = useState<number | null>(null);
-  const rows = occurrences.map((entry) => ({ ...entry, ranges: parseTimeRanges(entry.item.time) }));
+  const rows = occurrences.map((entry) => ({ ...entry, ranges: parseTimeRanges(entry.time) }));
   const ranges = rows.flatMap((row) => row.ranges);
   const start = Math.floor(Math.min(9 * 60, ...ranges.map((range) => range.start)) / 60) * 60;
   const end = Math.ceil(Math.max(18 * 60, ...ranges.map((range) => range.end)) / 60) * 60;
@@ -40,14 +40,14 @@ export function ProgramTimeline({ occurrences, onOpen }: {
               <button type="button" className="mobile-program-button" aria-expanded={isSelected} aria-controls={`mobile-activity-${row.item.id}`} onClick={() => setSelected(isSelected ? null : row.item.id)}>
                 <span className="mobile-program-type">{row.item.type}<span aria-hidden="true">{isSelected ? "−" : "+"}</span></span>
                 <strong>{row.item.title}</strong>
-                <span className="mobile-program-meta">{row.item.time}{conflicts.length > 0 && <span>{conflicts.length} {conflicts.length === 1 ? "traslape" : "traslapes"}</span>}</span>
+                <span className="mobile-program-meta">{row.time}{conflicts.length > 0 && <span>{conflicts.length} {conflicts.length === 1 ? "traslape" : "traslapes"}</span>}</span>
                 {row.notice && <span className="mobile-program-warning">Fecha por confirmar</span>}
                 {overlapsSelected && <span className="mobile-program-warning">Coincide con la actividad seleccionada</span>}
               </button>
               <div id={`mobile-activity-${row.item.id}`} hidden={!isSelected} className="mobile-program-detail">
                 <p><strong>Sede:</strong> {row.item.place}</p>
                 {row.notice && <p className="agenda-notice">{row.notice}</p>}
-                {conflicts.length ? <><p>Coincide en horario con:</p><ul>{conflicts.map((other) => <li key={other.item.id}>{other.item.title} <span>· {other.item.time}</span></li>)}</ul></> : <p>{row.ranges.length ? "Sin traslapes con las actividades mostradas." : "Horario pendiente de confirmar."}</p>}
+                {conflicts.length ? <><p>Coincide en horario con:</p><ul>{conflicts.map((other) => <li key={other.item.id}>{other.item.title} <span>· {other.time}</span></li>)}</ul></> : <p>{row.ranges.length ? "Sin traslapes con las actividades mostradas." : "Horario pendiente de confirmar."}</p>}
                 <button className="agenda-details" type="button" onClick={() => onOpen(row.item)}>Ver ficha completa ↗</button>
               </div>
             </li>;
@@ -71,7 +71,7 @@ export function ProgramTimeline({ occurrences, onOpen }: {
       </div>
       <p className="schedule-mobile-hint">Desliza el diagrama para recorrer los horarios →</p>
       <div className="schedule-inspector" aria-live="polite">
-        {chosen ? <><div><span className={`schedule-detail-type schedule-color-${chosen.item.type.toLowerCase()}`}>{chosen.item.type} · {chosen.item.time}</span><h4>{chosen.item.title}</h4><p>{chosen.item.place}</p>{chosen.notice && <p className="agenda-notice">{chosen.notice}</p>}<p className="schedule-overlap-note">{overlaps.length ? `Coincide en horario con ${overlaps.length} ${overlaps.length === 1 ? "actividad" : "actividades"}, resaltadas en el diagrama.` : chosen.ranges.length ? "Sin traslapes con las otras actividades mostradas." : "Sin horario suficiente para comprobar traslapes."}</p></div><button className="agenda-details" type="button" onClick={() => onOpen(chosen.item)}>Ver ficha completa ↗</button></> : <p>Selecciona una actividad para ubicar su sede y resaltar las que coinciden en horario.</p>}
+        {chosen ? <><div><span className={`schedule-detail-type schedule-color-${chosen.item.type.toLowerCase()}`}>{chosen.item.type} · {chosen.time}</span><h4>{chosen.item.title}</h4><p>{chosen.item.place}</p>{chosen.notice && <p className="agenda-notice">{chosen.notice}</p>}<p className="schedule-overlap-note">{overlaps.length ? `Coincide en horario con ${overlaps.length} ${overlaps.length === 1 ? "actividad" : "actividades"}, resaltadas en el diagrama.` : chosen.ranges.length ? "Sin traslapes con las otras actividades mostradas." : "Sin horario suficiente para comprobar traslapes."}</p></div><button className="agenda-details" type="button" onClick={() => onOpen(chosen.item)}>Ver ficha completa ↗</button></> : <p>Selecciona una actividad para ubicar su sede y resaltar las que coinciden en horario.</p>}
       </div>
     </> : <p className="agenda-empty">No hay actividades para este día en la sede seleccionada.</p>}
   </>;

@@ -12,6 +12,27 @@ const expanded = buildAgenda([multiDay]);
 assert.deepEqual(expanded.map((entry) => entry.date), ["2026-10-20", "2026-10-23"]);
 assert.ok(expanded.every((entry) => entry.item === multiDay && entry.notice.includes("no coinciden")));
 
+const differentTimes = buildAgenda([activity(15, {
+  date: "2026-10-20 | 2026-10-22",
+  day: "Martes | Jueves",
+  time: "13:00-15:00 | 14:00-16:00",
+})]);
+assert.deepEqual(differentTimes.map((entry) => ({ date: entry.date, time: entry.time })), [
+  { date: "2026-10-20", time: "13:00-15:00" },
+  { date: "2026-10-22", time: "14:00-16:00" },
+]);
+
+const threeDayActivity = buildAgenda([activity(16, {
+  date: "2026-10-20 | 2026-10-21 | 2026-10-22",
+  day: "Martes | Miércoles | Jueves",
+  time: "09:00-10:00 | 11:00-12:00 | 14:00-16:00",
+})]);
+assert.deepEqual(threeDayActivity.map((entry) => ({ date: entry.date, time: entry.time })), [
+  { date: "2026-10-20", time: "09:00-10:00" },
+  { date: "2026-10-21", time: "11:00-12:00" },
+  { date: "2026-10-22", time: "14:00-16:00" },
+]);
+
 const inferred = buildAgenda([activity(30, { date: undefined, day: "Día 2 Miércoles" })]);
 assert.equal(inferred[0].date, "2026-10-21");
 assert.match(inferred[0].notice, /Fecha por confirmar/);
