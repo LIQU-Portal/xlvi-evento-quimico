@@ -71,12 +71,22 @@ function getDriveFileId(value: string | undefined): string | undefined {
   }
 }
 
-export async function getProgramFromSheets(): Promise<ProgramItem[]> {
+type ProgramLoadOptions = {
+  fresh?: boolean;
+  allowFallback?: boolean;
+};
+
+export async function getProgramFromSheets(
+  options: ProgramLoadOptions = {},
+): Promise<ProgramItem[]> {
   const documentId = process.env.GOOGLE_SHEETS_DOCUMENT_ID?.trim();
   const url = process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL?.trim();
   const apiKey = process.env.GOOGLE_SHEETS_API_KEY?.trim();
 
   if (!url && !(documentId && apiKey)) {
+    if (options.allowFallback === false) {
+      throw new Error("Falta configurar la fuente del programa.");
+    }
     return fallbackProgram();
   }
 
@@ -84,9 +94,9 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
     const response = await fetch(
       url ??
         `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(documentId!)}/values/${encodeURIComponent("Programa!A:U")}?key=${encodeURIComponent(apiKey!)}`,
-      {
-      next: { revalidate: 60 },
-      },
+      options.fresh
+        ? { cache: "no-store" }
+        : { next: { revalidate: 60 } },
     );
 
     if (!response.ok) {
@@ -202,6 +212,7 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
     return program;
   } catch (error) {
     console.error("No fue posible cargar el programa desde Sheets:", error);
+    if (options.allowFallback === false) throw error;
     return fallbackProgram();
   }
 }

@@ -317,7 +317,6 @@ BEGIN
     INTO selected_enrollment
     FROM activity_enrollments
     WHERE activity_id = requested_activity_id
-      AND participant_id = requested_participant_id
       AND LOWER(participant_email) = LOWER(requested_email)
     LIMIT 1;
 
@@ -345,7 +344,6 @@ BEGIN
   IF selected_enrollment.team_id IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM activity_teams
     WHERE id = selected_enrollment.team_id
-      AND captain_participant_id = requested_participant_id
       AND LOWER(captain_email) = LOWER(requested_email)
   ) THEN
     RETURN QUERY SELECT 'captain_required'::TEXT,

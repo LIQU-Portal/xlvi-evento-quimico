@@ -8,6 +8,7 @@ import {
   cancelParticipantEnrollment,
   enrollParticipant,
   enrollTeam,
+  syncProgramActivity,
 } from "@/lib/activity-registration";
 import { lookupRegistration, lookupRegistrations } from "@/lib/registration";
 
@@ -31,7 +32,13 @@ export async function validateTeamMembers(activityId: number, emails: string[]) 
   const captainEmail = session?.user?.email?.trim().toLowerCase();
   if (!captainEmail) return { status: "error" as const, message: "Inicia sesión para continuar.", members: [] };
 
-  const program = await getProgramFromSheets();
+  let program: Awaited<ReturnType<typeof getProgramFromSheets>>;
+  try {
+    program = await getProgramFromSheets({ allowFallback: false });
+  } catch (error) {
+    console.error("No fue posible cargar el programa para validar el equipo:", error);
+    return { status: "error" as const, message: "No pudimos consultar el programa. Intenta nuevamente.", members: [] };
+  }
   const activity = program.find((item) => item.id === activityId);
   if (!activity || !acceptsTeamRegistration(activity)) {
     return { status: "error" as const, message: "Este concurso no admite equipos.", members: [] };
@@ -70,7 +77,13 @@ export async function enrollTeamInActivity(activityId: number, teamName: string,
   const captainEmail = session?.user?.email?.trim().toLowerCase();
   if (!captainEmail) return { status: "error" as const, code: "auth_required", message: "Inicia sesión para inscribir al equipo." };
 
-  const program = await getProgramFromSheets();
+  let program: Awaited<ReturnType<typeof getProgramFromSheets>>;
+  try {
+    program = await getProgramFromSheets({ allowFallback: false });
+  } catch (error) {
+    console.error("No fue posible cargar el programa para inscribir el equipo:", error);
+    return { status: "error" as const, code: "unavailable", message: "No pudimos consultar el programa. Intenta nuevamente." };
+  }
   const activity = program.find((item) => item.id === activityId);
   if (!activity || !acceptsTeamRegistration(activity)) return { status: "error" as const, code: "not_found", message: "El concurso ya no está disponible." };
 
@@ -127,7 +140,17 @@ export async function enrollInActivity(activityId: number) {
     };
   }
 
-  const program = await getProgramFromSheets();
+  let program: Awaited<ReturnType<typeof getProgramFromSheets>>;
+  try {
+    program = await getProgramFromSheets({ allowFallback: false });
+  } catch (error) {
+    console.error("No fue posible cargar el programa para la inscripcion:", error);
+    return {
+      status: "error" as const,
+      code: "unavailable",
+      message: "No pudimos consultar el programa. Intenta nuevamente.",
+    };
+  }
   const activity = program.find((item) => item.id === activityId);
 
   if (!activity || (activity.type !== "Taller" && activity.type !== "Concurso")) {
@@ -207,21 +230,26 @@ export async function cancelActivityEnrollment(activityId: number) {
     };
   }
 
-  const registrationLookup = await lookupRegistration(email);
-  const registration = registrationLookup.registration;
-
-  if (!registration) {
-    return {
-      status: "error" as const,
-      code: "registration_required",
-      message: "No encontramos tu registro general confirmado.",
-    };
-  }
-
   try {
+    let refreshFailed = false;
+
+    try {
+      const program = await getProgramFromSheets({
+        fresh: true,
+        allowFallback: false,
+      });
+      const activity = program.find((item) => item.id === activityId);
+      if (activity) await syncProgramActivity(activity);
+    } catch (error) {
+      refreshFailed = true;
+      console.error(
+        "No fue posible refrescar la configuracion antes de cancelar:",
+        error,
+      );
+    }
+
     const result = await cancelParticipantEnrollment({
       activityId,
-      participantId: registration.id,
       email,
     });
 
@@ -242,6 +270,15 @@ export async function cancelActivityEnrollment(activityId: number) {
       captain_required: "Solo el capitán puede cancelar la inscripción del equipo.",
       not_found: "No encontramos una inscripción activa para esta actividad.",
     } as const;
+
+    if (result.outcome === "cancellation_closed" && refreshFailed) {
+      return {
+        status: "error" as const,
+        code: "unavailable",
+        message:
+          "No pudimos comprobar el horario actualizado. Intenta nuevamente en un momento.",
+      };
+    }
 
     return {
       status: "error" as const,

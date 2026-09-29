@@ -25,11 +25,23 @@ export function AccountActivityEnrollments({
     setPendingActivityId(enrollment.activityId);
     setFeedback(null);
     startTransition(async () => {
-      const result = await cancelActivityEnrollment(enrollment.activityId);
-      setFeedback({ status: result.status, message: result.message });
-      setPendingActivityId(null);
-      setConfirmingActivityId(null);
-      if (result.status === "success") router.refresh();
+      try {
+        const result = await cancelActivityEnrollment(enrollment.activityId);
+        setFeedback({ status: result.status, message: result.message });
+        if (result.status === "success") {
+          setConfirmingActivityId(null);
+          router.refresh();
+        }
+      } catch (error) {
+        console.error("No fue posible enviar la cancelacion:", error);
+        setFeedback({
+          status: "error",
+          message:
+            "La conexión tardó demasiado. Recarga Mi cuenta para comprobar el estado antes de reintentar.",
+        });
+      } finally {
+        setPendingActivityId(null);
+      }
     });
   };
 
@@ -84,13 +96,13 @@ export function AccountActivityEnrollments({
               ) : (
                 <button
                   type="button"
-                  disabled={isPending || !enrollment.canCancel || enrollment.isTeamCaptain === false}
+                  disabled={isPending || enrollment.isTeamCaptain === false}
                   onClick={() => setConfirmingActivityId(enrollment.activityId)}
                 >
                   <XCircle />
                   {enrollment.isTeamCaptain === false
                     ? "Cancela el capitán"
-                    : enrollment.canCancel ? "Cancelar" : "Cancelación cerrada"}
+                    : "Cancelar"}
                 </button>
               )}
             </article>

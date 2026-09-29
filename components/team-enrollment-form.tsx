@@ -20,13 +20,23 @@ export function TeamEnrollmentForm({ activityId, minMembers, maxMembers }: { act
     setValidated(false); setMembers([]); setFeedback("");
   };
   const validate = () => startTransition(async () => {
-    const result = await validateTeamMembers(activityId, emails);
-    setMembers(result.members); setValidated(result.status === "success"); setFeedback(result.message);
+    try {
+      const result = await validateTeamMembers(activityId, emails);
+      setMembers(result.members); setValidated(result.status === "success"); setFeedback(result.message);
+    } catch (error) {
+      console.error("No fue posible validar el equipo:", error);
+      setValidated(false); setFeedback("La conexión tardó demasiado. Intenta nuevamente.");
+    }
   });
   const submit = () => startTransition(async () => {
-    const result = await enrollTeamInActivity(activityId, teamName, emails);
-    setFeedback(result.message);
-    if (result.status === "success") router.refresh();
+    try {
+      const result = await enrollTeamInActivity(activityId, teamName, emails);
+      setFeedback(result.message);
+      if (result.status === "success") router.refresh();
+    } catch (error) {
+      console.error("No fue posible inscribir el equipo:", error);
+      setFeedback("La conexión tardó demasiado. Revisa Mi cuenta antes de volver a intentarlo.");
+    }
   });
 
   return (

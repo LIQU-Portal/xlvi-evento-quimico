@@ -122,9 +122,19 @@ export function ProgramExplorer({
     ) return;
 
     startTransition(async () => {
-      const result = await enrollInActivity(selectedItem.id);
-      setEnrollmentFeedback(result);
-      if (result.status === "success") router.refresh();
+      try {
+        const result = await enrollInActivity(selectedItem.id);
+        setEnrollmentFeedback(result);
+        if (result.status === "success") router.refresh();
+      } catch (error) {
+        console.error("No fue posible enviar la inscripcion:", error);
+        setEnrollmentFeedback({
+          status: "error",
+          code: "unavailable",
+          message:
+            "La conexión tardó demasiado. Revisa Mi cuenta antes de volver a intentarlo.",
+        });
+      }
     });
   };
 

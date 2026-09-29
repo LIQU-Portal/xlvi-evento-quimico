@@ -67,6 +67,39 @@ try {
   });
 
   await sql.query(
+    "UPDATE activities SET closes_at = NOW() - INTERVAL '1 minute' WHERE id = $1",
+    [activityId],
+  );
+  const [closedCancellation] = await sql.query(
+    "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
+    [
+      activityId,
+      "stale-participant-id",
+      `${testPrefix}-${confirmedIndex}@example.invalid`,
+      `${testPrefix}-${confirmedIndex}@example.invalid`,
+      "Prueba de cierre",
+    ],
+  );
+  assert.equal(closedCancellation.outcome, "cancellation_closed");
+
+  await sql.query(
+    "UPDATE activities SET closes_at = NOW() + INTERVAL '1 hour' WHERE id = $1",
+    [activityId],
+  );
+  const [extendedCancellation] = await sql.query(
+    "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
+    [
+      activityId,
+      "stale-participant-id",
+      `${testPrefix}-${confirmedIndex}@example.invalid`,
+      `${testPrefix}-${confirmedIndex}@example.invalid`,
+      "Prueba de extension de cierre",
+    ],
+  );
+  assert.equal(extendedCancellation.outcome, "cancelled");
+  assert.equal(extendedCancellation.remaining_capacity, 1);
+
+  await sql.query(
     `INSERT INTO activities (id, type, title, capacity, reserved_count, registration_enabled, capacity_unit, min_members, max_members)
      VALUES ($1, 'Concurso', $2, 60, 0, TRUE, 'personas', 3, 3)`,
     [teamActivityId, `Prueba de equipos ${testPrefix}`],
@@ -107,7 +140,7 @@ try {
     "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
     [
       teamActivityId,
-      confirmedTeam.captain_participant_id,
+      "stale-captain-id",
       confirmedTeam.captain_email,
       confirmedTeam.captain_email,
       "Cancelación aislada de prueba",

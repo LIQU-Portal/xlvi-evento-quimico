@@ -71,12 +71,22 @@ function parseLocalDateTime(value: string | undefined): string | null {
 
   if (!input) return null;
 
-  const localMatch = input.match(
+  const isoLocalMatch = input.match(
     /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/,
   );
-  const candidate = localMatch
-    ? `${localMatch[1]}-${localMatch[2]}-${localMatch[3]}T${localMatch[4]}:${localMatch[5]}:${localMatch[6] ?? "00"}-06:00`
-    : input;
+  const slashLocalMatch = input.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/,
+  );
+  const slashFirst = Number(slashLocalMatch?.[1]);
+  const slashSecond = Number(slashLocalMatch?.[2]);
+  const slashIsMonthFirst = slashFirst <= 12 && slashSecond > 12;
+  const slashMonth = slashIsMonthFirst ? slashFirst : slashSecond;
+  const slashDay = slashIsMonthFirst ? slashSecond : slashFirst;
+  const candidate = isoLocalMatch
+    ? `${isoLocalMatch[1]}-${isoLocalMatch[2]}-${isoLocalMatch[3]}T${isoLocalMatch[4]}:${isoLocalMatch[5]}:${isoLocalMatch[6] ?? "00"}-06:00`
+    : slashLocalMatch
+      ? `${slashLocalMatch[3]}-${String(slashMonth).padStart(2, "0")}-${String(slashDay).padStart(2, "0")}T${String(Number(slashLocalMatch[4])).padStart(2, "0")}:${slashLocalMatch[5]}:${slashLocalMatch[6] ?? "00"}-06:00`
+      : input;
   const date = new Date(candidate);
 
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
@@ -192,6 +202,12 @@ async function syncActivity(config: ActivityConfig) {
     max_members: number;
     status: Exclude<ActivityRegistrationStatus, "unavailable">;
   };
+}
+
+export async function syncProgramActivity(item: ProgramItem) {
+  const config = getActivityConfig(item);
+  if (!config) return null;
+  return syncActivity(config);
 }
 
 export async function syncProgramActivities(
@@ -378,7 +394,7 @@ export async function getParticipantEnrollmentActivityIds(
 
 export async function cancelParticipantEnrollment(input: {
   activityId: number;
-  participantId: string;
+  participantId?: string;
   email: string;
 }) {
   const sql = getSql();
@@ -386,7 +402,7 @@ export async function cancelParticipantEnrollment(input: {
     "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
     [
       input.activityId,
-      input.participantId,
+      input.participantId ?? "",
       input.email,
       input.email,
       "Cancelación solicitada por el participante desde Mi cuenta",

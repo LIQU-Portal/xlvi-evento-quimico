@@ -226,7 +226,7 @@ export async function lookupRegistration(
     try {
       mirroredRegistration = await findMirroredRegistration(normalizedEmail);
 
-      if (mirroredRegistration?.qrToken) {
+      if (mirroredRegistration?.status === "Confirmado") {
         return {
           state: "registered",
           registration: mirroredRegistration,
