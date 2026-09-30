@@ -1,7 +1,10 @@
 import QRCode from "qrcode";
 
+import { getSql, hasDatabaseConfiguration } from "@/lib/db";
+
 export type AccountType = "Alumno" | "Profesor";
 export type ParticipantRole = AccountType | "Staff";
+export type StaffType = "Alumno" | "Académico";
 
 export type EventRegistration = {
   id: string;
@@ -10,6 +13,7 @@ export type EventRegistration = {
   name: string;
   accountType: AccountType;
   role: ParticipantRole;
+  staffType?: StaffType;
   institutionalCode: string;
   affiliation: string;
   status: "Confirmado" | "Cancelado";
@@ -32,6 +36,10 @@ type AppsScriptResponse = {
   alreadyRegistered?: boolean;
   confirmationEmailSent?: boolean;
   emailMessage?: string;
+  registrations?: Array<{
+    email: string;
+    registration: EventRegistration | null;
+  }>;
 };
 
 export class RegistrationServiceError extends Error {}
@@ -40,6 +48,127 @@ export function getAccountType(email: string): AccountType {
   return email.toLowerCase().endsWith("@alumnos.udg.mx")
     ? "Alumno"
     : "Profesor";
+}
+
+function registrationFromRow(row: Record<string, unknown>): EventRegistration {
+  return {
+    id: String(row.id),
+    createdAt: new Date(String(row.created_at)).toISOString(),
+    email: String(row.email),
+    name: String(row.name),
+    accountType: row.account_type === "Alumno" ? "Alumno" : "Profesor",
+    role:
+      row.role === "Staff" || row.role === "Alumno"
+        ? row.role
+        : "Profesor",
+    ...(row.staff_type === "Alumno" || row.staff_type === "Académico"
+      ? { staffType: row.staff_type }
+      : {}),
+    institutionalCode: String(row.institutional_code),
+    affiliation: String(row.affiliation),
+    status: row.status === "Cancelado" ? "Cancelado" : "Confirmado",
+    ...(row.qr_token ? { qrToken: String(row.qr_token) } : {}),
+    ...(row.confirmation_email_sent_at
+      ? {
+          confirmationEmailSentAt: new Date(
+            String(row.confirmation_email_sent_at),
+          ).toISOString(),
+        }
+      : {}),
+  };
+}
+
+async function findMirroredRegistration(email: string) {
+  const sql = getSql();
+  const rows = await sql.query(
+    `SELECT id, created_at, email, name, account_type, role, staff_type,
+            institutional_code, affiliation, status, qr_token,
+            confirmation_email_sent_at
+       FROM participants
+      WHERE LOWER(email) = LOWER($1)
+      LIMIT 1`,
+    [email],
+  );
+
+  return rows[0]
+    ? registrationFromRow(rows[0] as Record<string, unknown>)
+    : null;
+}
+
+async function findMirroredRegistrations(emails: string[]) {
+  if (!emails.length) return new Map<string, EventRegistration>();
+
+  const sql = getSql();
+  const rows = await sql.query(
+    `SELECT id, created_at, email, name, account_type, role, staff_type,
+            institutional_code, affiliation, status, qr_token,
+            confirmation_email_sent_at
+       FROM participants
+      WHERE LOWER(email) = ANY($1::TEXT[])`,
+    [emails],
+  );
+
+  return new Map(
+    rows.map((row) => {
+      const registration = registrationFromRow(
+        row as Record<string, unknown>,
+      );
+      return [registration.email.toLowerCase(), registration] as const;
+    }),
+  );
+}
+
+async function mirrorRegistration(registration: EventRegistration) {
+  if (!hasDatabaseConfiguration()) return;
+
+  const sql = getSql();
+  await sql.query(
+    `INSERT INTO participants (
+       id, email, name, account_type, role, staff_type, institutional_code, affiliation,
+       status, qr_token, confirmation_email_sent_at, created_at, updated_at
+     ) VALUES (
+       $1, LOWER($2), $3, $4, $5, NULLIF($6, ''), $7, $8, $9, $10,
+       NULLIF($11, '')::TIMESTAMPTZ, $12::TIMESTAMPTZ, NOW()
+     )
+     ON CONFLICT (email) DO UPDATE SET
+       id = EXCLUDED.id,
+       name = EXCLUDED.name,
+       account_type = EXCLUDED.account_type,
+       role = EXCLUDED.role,
+       staff_type = EXCLUDED.staff_type,
+       institutional_code = EXCLUDED.institutional_code,
+       affiliation = EXCLUDED.affiliation,
+       status = EXCLUDED.status,
+       qr_token = COALESCE(EXCLUDED.qr_token, participants.qr_token),
+       confirmation_email_sent_at = COALESCE(
+         EXCLUDED.confirmation_email_sent_at,
+         participants.confirmation_email_sent_at
+       ),
+       created_at = EXCLUDED.created_at,
+       updated_at = NOW()`,
+    [
+      registration.id,
+      registration.email,
+      registration.name,
+      registration.accountType,
+      registration.role,
+      registration.staffType ?? "",
+      registration.institutionalCode,
+      registration.affiliation,
+      registration.status,
+      registration.qrToken ?? null,
+      registration.confirmationEmailSentAt ?? "",
+      registration.createdAt,
+    ],
+  );
+}
+
+async function mirrorRegistrationSafely(registration: EventRegistration) {
+  try {
+    await mirrorRegistration(registration);
+  } catch (error) {
+    console.error("No fue posible actualizar el espejo de participantes:", error);
+  }
 }
 
 function getConfiguration() {
@@ -90,7 +219,34 @@ async function callAppsScript(
 export async function lookupRegistration(
   email: string,
 ): Promise<RegistrationLookup> {
+  const normalizedEmail = email.trim().toLowerCase();
+  let mirroredRegistration: EventRegistration | null = null;
+
+  if (hasDatabaseConfiguration()) {
+    try {
+      mirroredRegistration = await findMirroredRegistration(normalizedEmail);
+
+      if (mirroredRegistration?.status === "Confirmado") {
+        return {
+          state: "registered",
+          registration: mirroredRegistration,
+          isStaff: mirroredRegistration.role === "Staff",
+        };
+      }
+    } catch (error) {
+      console.error("No fue posible consultar el registro en Neon:", error);
+    }
+  }
+
   if (!getConfiguration().configured) {
+    if (mirroredRegistration) {
+      return {
+        state: "registered",
+        registration: mirroredRegistration,
+        isStaff: mirroredRegistration.role === "Staff",
+      };
+    }
+
     return {
       state: "unavailable",
       registration: null,
@@ -100,8 +256,13 @@ export async function lookupRegistration(
   }
 
   try {
-    const result = await callAppsScript({ action: "lookup", email });
+    const result = await callAppsScript(
+      { action: "lookup", email: normalizedEmail },
+      8_000,
+    );
     const registration = result.registration ?? null;
+
+    if (registration) await mirrorRegistrationSafely(registration);
 
     return {
       state: registration ? "registered" : "not_registered",
@@ -110,6 +271,15 @@ export async function lookupRegistration(
     };
   } catch (error) {
     console.error("No fue posible consultar el registro:", error);
+
+    if (mirroredRegistration) {
+      return {
+        state: "registered",
+        registration: mirroredRegistration,
+        isStaff: mirroredRegistration.role === "Staff",
+        message: "Mostramos la copia disponible mientras Google Sheets responde.",
+      };
+    }
 
     return {
       state: "unavailable",
@@ -123,6 +293,41 @@ export async function lookupRegistration(
   }
 }
 
+export async function lookupRegistrations(emails: string[]) {
+  const normalized = emails.map((email) => email.trim().toLowerCase());
+  let mirrored = new Map<string, EventRegistration>();
+
+  if (hasDatabaseConfiguration()) {
+    try {
+      mirrored = await findMirroredRegistrations(normalized);
+    } catch (error) {
+      console.error("No fue posible consultar participantes en Neon:", error);
+    }
+  }
+
+  const missingEmails = normalized.filter((email) => !mirrored.has(email));
+
+  if (missingEmails.length) {
+    const result = await callAppsScript(
+      { action: "lookupMany", emails: missingEmails },
+      8_000,
+    );
+
+    await Promise.all(
+      (result.registrations ?? []).map(async ({ email, registration }) => {
+        if (!registration) return;
+        mirrored.set(email.toLowerCase(), registration);
+        await mirrorRegistrationSafely(registration);
+      }),
+    );
+  }
+
+  return normalized.map((email) => ({
+    email,
+    registration: mirrored.get(email) ?? null,
+  }));
+}
+
 export async function createRegistration(input: {
   email: string;
   name: string;
@@ -130,11 +335,14 @@ export async function createRegistration(input: {
   affiliation: string;
 }) {
   const accountType = getAccountType(input.email);
-  const result = await callAppsScript({
-    action: "register",
-    ...input,
-    accountType,
-  });
+  const result = await callAppsScript(
+    {
+      action: "register",
+      ...input,
+      accountType,
+    },
+    20_000,
+  );
 
   if (!result.registration) {
     throw new RegistrationServiceError(
@@ -143,6 +351,7 @@ export async function createRegistration(input: {
   }
 
   let registration = result.registration;
+  await mirrorRegistrationSafely(registration);
   let confirmationEmailSent = result.confirmationEmailSent === true;
   let emailMessage = result.emailMessage;
 
@@ -152,6 +361,7 @@ export async function createRegistration(input: {
       registration = emailResult.registration;
       confirmationEmailSent = emailResult.confirmationEmailSent;
       emailMessage = emailResult.emailMessage;
+      await mirrorRegistrationSafely(registration);
     } catch (error) {
       console.error("No fue posible enviar el correo de confirmación:", error);
       emailMessage =
@@ -200,19 +410,22 @@ async function deliverConfirmationEmail(registration: EventRegistration) {
 }
 
 export async function sendRegistrationConfirmation(email: string) {
-  const result = await callAppsScript({ action: "lookup", email });
+  const lookup = await lookupRegistration(email);
+  const registration = lookup.registration;
 
-  if (!result.registration) {
+  if (!registration) {
     throw new RegistrationServiceError("No encontramos tu registro confirmado.");
   }
 
-  if (result.registration.confirmationEmailSentAt) {
+  if (registration.confirmationEmailSentAt) {
     return {
-      registration: result.registration,
+      registration,
       confirmationEmailSent: true,
       emailMessage: "El correo de confirmación ya había sido enviado.",
     };
   }
 
-  return deliverConfirmationEmail(result.registration);
+  const result = await deliverConfirmationEmail(registration);
+  await mirrorRegistrationSafely(result.registration);
+  return result;
 }

@@ -2,8 +2,10 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Activities } from "@/components/activities";
 import { getProgramFromSheets } from "@/lib/sheets";
-import { ProgramExplorer } from "@/components/program-explorer";
-import { Beaker, CalendarDays, ChevronRight, FlaskConical, MapPin, Network, Sparkles } from "lucide-react";
+import { EventProgram } from "@/components/event-program";
+import { initialAgendaDay } from "@/lib/program-agenda";
+import { getParticipantSummary } from "@/lib/event-summary";
+import { CalendarDays, ChevronRight, MapPin } from "lucide-react";
 import { content } from "@/config/content";
 import { auth } from "@/auth";
 import {
@@ -29,9 +31,10 @@ export default async function Home({ searchParams }: HomeProps) {
   const requestedType = (await searchParams).tipo;
   const normalizedType = typeof requestedType === "string" ? requestedType.toLowerCase() : "";
   const initialFilter = programFilters[normalizedType as keyof typeof programFilters] ?? "Todo";
-  const [program, session] = await Promise.all([
+  const [program, session, participantSummary] = await Promise.all([
     getProgramFromSheets(),
     auth(),
+    getParticipantSummary(),
   ]);
   const [activityAvailability, enrolledActivityIds] = await Promise.all([
     syncProgramActivities(program),
@@ -90,49 +93,15 @@ export default async function Home({ searchParams }: HomeProps) {
         </div>  
       </div>
 
-      <section className="section model-section" id="evento" aria-labelledby="event-title">
-        <div className="container">
-          <div className="section-heading split-heading">
-            <div>
-              <p className="section-index">02 — Un encuentro para pensar la química</p>
-              <h2 id="model-title">Conocimiento que<br /><em>se pone en práctica.</em></h2>
-            </div>
-            <div>
-              <p className="lead">{content.model.intro}</p>
-            </div>
-          </div>
-          <div className="competency-grid">
-            {content.model.competencies.map((item, index) => (
-              <article className="competency-card" key={item.title}>
-                <span className="card-number">0{index + 1}</span>
-                <div className="competency-icon">{index === 0 ? <Beaker /> : index === 1 ? <FlaskConical /> : index === 2 ? <Network /> : <Sparkles />}</div>
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
-                <small>Competencia en acción</small>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section program-section" id="programa" aria-labelledby="program-title">
-        <div className="container">
-          <div className="section-heading program-heading">
-            <div>
-              <p className="section-index light">03 — Agenda preliminar</p>
-              <h2 id="program-title">El programa,<br /><em>de un vistazo.</em></h2>
-            </div>
-            <p>Horarios, sedes y participantes están sujetos a confirmación. Usa los filtros para explorar la propuesta de agenda.</p>
-          </div>
-          <ProgramExplorer
-            key={initialFilter}
-            items={program}
-            activityAvailability={activityAvailability}
-            enrolledActivityIds={enrolledActivityIds}
-            initialFilter={initialFilter}
-          />
-        </div>
-      </section>
+      <EventProgram
+        key={initialFilter}
+        items={program}
+        activityAvailability={activityAvailability}
+        enrolledActivityIds={enrolledActivityIds}
+        initialFilter={initialFilter}
+        initialDay={initialAgendaDay()}
+        participantSummary={participantSummary}
+      />
 
       <Activities />
 

@@ -9,7 +9,12 @@ const allowedDomains = new Set([
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Google({
-      authorization: { params: { scope: "openid email profile" } },
+      authorization: {
+        params: {
+          scope: "openid email profile",
+          prompt: "select_account",
+        },
+      },
     }),
   ],
 

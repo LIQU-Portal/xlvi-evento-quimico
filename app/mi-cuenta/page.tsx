@@ -90,7 +90,11 @@ export default async function MiCuentaPage() {
           <div>
             <dt>Registro</dt>
             <dd className={lookup.registration ? "is-confirmed" : "is-pending"}>
-              {lookup.registration ? "Confirmado" : "Pendiente"}
+              {lookup.registration
+                ? "Confirmado"
+                : lookup.state === "unavailable"
+                  ? "No disponible"
+                  : "Pendiente"}
             </dd>
           </div>
           <div><dt>Carrera</dt><dd>{lookup.registration?.affiliation ?? "Por confirmar"}</dd></div>
@@ -115,14 +119,23 @@ export default async function MiCuentaPage() {
 
             <AccountActivityEnrollments enrollments={activityEnrollments} />
           </div>
+        ) : lookup.state === "unavailable" ? (
+          <section className="registration-card account-registration-pending">
+            <p className="eyebrow">Consulta temporalmente no disponible</p>
+            <h2>No necesitas registrarte otra vez</h2>
+            <p>
+              No pudimos consultar tu registro en este momento. Recarga la
+              página en unos minutos; tus datos y tus inscripciones siguen
+              guardados.
+            </p>
+          </section>
         ) : (
           <section className="registration-card account-registration-pending">
             <RegistrationForm
               name={name}
               email={email}
               accountType={accountType}
-              serviceAvailable={lookup.state !== "unavailable"}
-              serviceMessage={lookup.message}
+              serviceAvailable
             />
           </section>
         )}

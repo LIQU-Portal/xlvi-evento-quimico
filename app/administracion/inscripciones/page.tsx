@@ -85,7 +85,7 @@ export default async function AdminEnrollmentsPage({ searchParams }: AdminPagePr
               <span>{activity.type}</span>
               <h2>{activity.title}</h2>
               <dl>
-                <div><dt>Cupo</dt><dd>{activity.capacity}</dd></div>
+                <div><dt>Cupo ({activity.capacityUnit})</dt><dd>{activity.capacity}</dd></div>
                 <div><dt>Confirmados</dt><dd>{activity.confirmed}</dd></div>
                 <div><dt>Cancelados</dt><dd>{activity.cancelled}</dd></div>
                 <div><dt>Disponibles</dt><dd>{activity.remaining}</dd></div>
@@ -155,6 +155,7 @@ export default async function AdminEnrollmentsPage({ searchParams }: AdminPagePr
                     <td data-label="Actividad">
                       <strong>{enrollment.activityTitle}</strong>
                       <span>{enrollment.activityType}</span>
+                      {enrollment.teamName && <small>Equipo: {enrollment.teamName}</small>}
                     </td>
                     <td data-label="Estado">
                       <span className={`admin-status admin-status-${enrollment.status.toLowerCase()}`}>

@@ -7,6 +7,7 @@ if (!connectionString) throw new Error("Falta POSTGRES_URL o POSTGRES_URL_NON_PO
 
 const sql = neon(connectionString);
 const activityId = -Number(String(Date.now()).slice(-8));
+const teamActivityId = activityId - 1;
 const testPrefix = `concurrency-${Date.now()}`;
 
 try {
@@ -29,14 +30,16 @@ try {
   const outcomes = results.map((rows) => rows[0].outcome);
   assert.equal(outcomes.filter((outcome) => outcome === "confirmed").length, 20);
   assert.equal(outcomes.filter((outcome) => outcome === "full").length, 130);
+  const confirmedIndex = outcomes.findIndex((outcome) => outcome === "confirmed");
+  assert.notEqual(confirmedIndex, -1);
 
   const duplicateAttempts = await Promise.all(
     Array.from({ length: 10 }, () =>
       sql.query("SELECT * FROM enroll_in_activity($1, $2, $3, $4)", [
         activityId,
-        `${testPrefix}-P0`,
-        `${testPrefix}-0@example.invalid`,
-        "Participante de prueba 0",
+        `${testPrefix}-P${confirmedIndex}`,
+        `${testPrefix}-${confirmedIndex}@example.invalid`,
+        `Participante de prueba ${confirmedIndex}`,
       ]),
     ),
   );
@@ -63,8 +66,108 @@ try {
     unique_emails: 20,
   });
 
-  console.log("Prueba aprobada: 150 solicitudes, 20 confirmadas, 130 rechazadas por cupo y 0 duplicados.");
+  await sql.query(
+    "UPDATE activities SET closes_at = NOW() - INTERVAL '1 minute' WHERE id = $1",
+    [activityId],
+  );
+  const [closedCancellation] = await sql.query(
+    "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
+    [
+      activityId,
+      "stale-participant-id",
+      `${testPrefix}-${confirmedIndex}@example.invalid`,
+      `${testPrefix}-${confirmedIndex}@example.invalid`,
+      "Prueba de cierre",
+    ],
+  );
+  assert.equal(closedCancellation.outcome, "cancellation_closed");
+
+  await sql.query(
+    "UPDATE activities SET closes_at = NOW() + INTERVAL '1 hour' WHERE id = $1",
+    [activityId],
+  );
+  const [extendedCancellation] = await sql.query(
+    "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
+    [
+      activityId,
+      "stale-participant-id",
+      `${testPrefix}-${confirmedIndex}@example.invalid`,
+      `${testPrefix}-${confirmedIndex}@example.invalid`,
+      "Prueba de extension de cierre",
+    ],
+  );
+  assert.equal(extendedCancellation.outcome, "cancelled");
+  assert.equal(extendedCancellation.remaining_capacity, 1);
+
+  await sql.query(
+    `INSERT INTO activities (id, type, title, capacity, reserved_count, registration_enabled, capacity_unit, min_members, max_members)
+     VALUES ($1, 'Concurso', $2, 60, 0, TRUE, 'personas', 3, 3)`,
+    [teamActivityId, `Prueba de equipos ${testPrefix}`],
+  );
+  const teamResults = await Promise.all(
+    Array.from({ length: 150 }, (_, team) => {
+      const ids = Array.from({ length: 3 }, (_, member) => `${testPrefix}-T${team}-P${member}`);
+      const emails = ids.map((id) => `${id}@example.invalid`);
+      const names = ids.map((id) => `Participante ${id}`);
+      return sql.query(
+        "SELECT * FROM enroll_team_in_activity($1, $2, $3::TEXT[], $4::TEXT[], $5::TEXT[])",
+        [teamActivityId, `Equipo ${team}`, ids, emails, names],
+      );
+    }),
+  );
+  const teamOutcomes = teamResults.map((rows) => rows[0].outcome);
+  assert.equal(teamOutcomes.filter((outcome) => outcome === "confirmed").length, 20);
+  assert.equal(teamOutcomes.filter((outcome) => outcome === "full").length, 130);
+  const teamCounts = await sql.query(
+    `SELECT
+       (SELECT reserved_count FROM activities WHERE id = $1)::INTEGER AS reserved,
+       COUNT(DISTINCT team_id)::INTEGER AS teams,
+       COUNT(*)::INTEGER AS members
+     FROM activity_enrollments WHERE activity_id = $1 AND status = 'Confirmado'`,
+    [teamActivityId],
+  );
+  assert.deepEqual(teamCounts[0], { reserved: 60, teams: 20, members: 60 });
+
+  const [confirmedTeam] = await sql.query(
+    `SELECT captain_participant_id, captain_email
+       FROM activity_teams
+      WHERE activity_id = $1 AND status = 'Confirmado'
+      ORDER BY id
+      LIMIT 1`,
+    [teamActivityId],
+  );
+  const [cancelledTeam] = await sql.query(
+    "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
+    [
+      teamActivityId,
+      "stale-captain-id",
+      confirmedTeam.captain_email,
+      confirmedTeam.captain_email,
+      "Cancelación aislada de prueba",
+    ],
+  );
+  assert.equal(cancelledTeam.outcome, "cancelled");
+  assert.equal(cancelledTeam.remaining_capacity, 3);
+
+  const [countsAfterCancellation] = await sql.query(
+    `SELECT
+       (SELECT reserved_count FROM activities WHERE id = $1)::INTEGER AS reserved,
+       COUNT(DISTINCT team_id)::INTEGER AS teams,
+       COUNT(*)::INTEGER AS members
+     FROM activity_enrollments WHERE activity_id = $1 AND status = 'Confirmado'`,
+    [teamActivityId],
+  );
+  assert.deepEqual(countsAfterCancellation, {
+    reserved: 57,
+    teams: 19,
+    members: 57,
+  });
+
+  console.log("Prueba aprobada: concurrencia y cancelación de equipos con cupo por persona, sin sobrecupo ni duplicados.");
 } finally {
+  await sql.query("DELETE FROM activity_enrollments WHERE activity_id = $1", [teamActivityId]);
+  await sql.query("DELETE FROM activity_teams WHERE activity_id = $1", [teamActivityId]);
+  await sql.query("DELETE FROM activities WHERE id = $1", [teamActivityId]);
   await sql.query("DELETE FROM activity_enrollments WHERE activity_id = $1", [activityId]);
   await sql.query("DELETE FROM activities WHERE id = $1", [activityId]);
   console.log("Datos aislados de prueba eliminados.");

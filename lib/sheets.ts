@@ -71,23 +71,41 @@ function getDriveFileId(value: string | undefined): string | undefined {
   }
 }
 
-export async function getProgramFromSheets(): Promise<ProgramItem[]> {
-  const url = process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL;
+type ProgramLoadOptions = {
+  fresh?: boolean;
+  allowFallback?: boolean;
+};
 
-  if (!url) {
+export async function getProgramFromSheets(
+  options: ProgramLoadOptions = {},
+): Promise<ProgramItem[]> {
+  const documentId = process.env.GOOGLE_SHEETS_DOCUMENT_ID?.trim();
+  const url = process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL?.trim();
+  const apiKey = process.env.GOOGLE_SHEETS_API_KEY?.trim();
+
+  if (!url && !(documentId && apiKey)) {
+    if (options.allowFallback === false) {
+      throw new Error("Falta configurar la fuente del programa.");
+    }
     return fallbackProgram();
   }
 
   try {
-    const response = await fetch(url, {
-      next: { revalidate: 60 },
-    });
+    const response = await fetch(
+      url ??
+        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(documentId!)}/values/${encodeURIComponent("Programa!A:U")}?key=${encodeURIComponent(apiKey!)}`,
+      options.fresh
+        ? { cache: "no-store" }
+        : { next: { revalidate: 60 } },
+    );
 
     if (!response.ok) {
       throw new Error(`Google Sheets respondió ${response.status}`);
     }
 
-    const rows = parseCsv(await response.text());
+    const rows = url
+      ? parseCsv(await response.text())
+      : ((await response.json()) as { values?: string[][] }).values ?? [];
     const headerIndex = rows.findIndex(
       (row) =>
         row.includes("id") &&
@@ -130,6 +148,12 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
         const registrationCapacity = Number(
           row[column("capacidad")]?.trim(),
         );
+        const capacityUnit =
+          row[column("unidadcupo")]?.trim().toLowerCase() === "equipos"
+            ? "equipos"
+            : "personas";
+        const minMembers = Number(row[column("minintegrantes")]?.trim());
+        const maxMembers = Number(row[column("maxintegrantes")]?.trim());
         const date = row[column("fecha")]?.trim();
         const statusValue = row[column("estado")]?.trim().toLowerCase();
 
@@ -163,6 +187,13 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
           registrationEnabled: parseCheckbox(
             row[column("inscripcionhabilitada")],
           ),
+          capacityUnit,
+          minMembers:
+            Number.isInteger(minMembers) && minMembers > 0 ? minMembers : 1,
+          maxMembers:
+            Number.isInteger(maxMembers) && maxMembers >= minMembers
+              ? maxMembers
+              : 1,
           ...(row[column("aperturaregistro")]?.trim()
             ? {
                 registrationOpenAt: row[column("aperturaregistro")].trim(),
@@ -181,6 +212,7 @@ export async function getProgramFromSheets(): Promise<ProgramItem[]> {
     return program;
   } catch (error) {
     console.error("No fue posible cargar el programa desde Sheets:", error);
+    if (options.allowFallback === false) throw error;
     return fallbackProgram();
   }
 }

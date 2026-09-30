@@ -1,17 +1,20 @@
 "use client";
 
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, MapPin, UserRound, UsersRound, X } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, useTransition, type Ref } from "react";
 import { enrollInActivity } from "@/app/activity-registration-actions";
 import type { ProgramItem, ProgramType } from "@/config/content";
 import type {
   ActivityAvailability,
   ActivityAvailabilityMap,
 } from "@/lib/activity-registration";
+import { TeamEnrollmentForm } from "@/components/team-enrollment-form";
 
 const filters: Array<"Todo" | ProgramType> = ["Todo", "Conferencia", "Taller", "Concurso", "Actividad"];
+
+export type ProgramExplorerHandle = { openActivity: (item: ProgramItem) => void };
 
 function getRegistrationLabel(availability?: ActivityAvailability) {
   if (!availability || availability.status === "unavailable") {
@@ -25,11 +28,13 @@ function getRegistrationLabel(availability?: ActivityAvailability) {
 }
 
 export function ProgramExplorer({
+  ref,
   items,
   activityAvailability,
   enrolledActivityIds,
   initialFilter,
 }: {
+  ref?: Ref<ProgramExplorerHandle>;
   items: ProgramItem[];
   activityAvailability: ActivityAvailabilityMap;
   enrolledActivityIds: number[];
@@ -38,6 +43,10 @@ export function ProgramExplorer({
   const router = useRouter();
   const [active, setActive] = useState<(typeof filters)[number]>(initialFilter);
   const [selectedItem, setSelectedItem] = useState<ProgramItem | null>(null);
+  const [loadedFlyerIds, setLoadedFlyerIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const flyerPreloads = useRef(new Map<string, HTMLImageElement>());
   const [enrollmentFeedback, setEnrollmentFeedback] = useState<{
     status: "success" | "error";
     code: string;
@@ -52,6 +61,40 @@ export function ProgramExplorer({
     ? enrolledActivityIds.includes(selectedItem.id)
     : false;
 
+  const markFlyerLoaded = (fileId: string) => {
+    setLoadedFlyerIds((current) => {
+      if (current.has(fileId)) return current;
+      const next = new Set(current);
+      next.add(fileId);
+      return next;
+    });
+  };
+
+  const preloadFlyer = (fileId?: string) => {
+    if (!fileId || typeof window === "undefined" || flyerPreloads.current.has(fileId)) {
+      return;
+    }
+
+    const src = `/api/flyers/${encodeURIComponent(fileId)}`;
+    const { props } = getImageProps({
+      src,
+      alt: "",
+      width: 520,
+      height: 650,
+      sizes: "(max-width: 720px) 92vw, 520px",
+      quality: 70,
+    });
+    const preload = new window.Image();
+
+    preload.decoding = "async";
+    preload.fetchPriority = "high";
+    if (props.srcSet) preload.srcset = props.srcSet;
+    if (props.sizes) preload.sizes = props.sizes;
+    preload.onload = () => markFlyerLoaded(fileId);
+    preload.src = props.src;
+    flyerPreloads.current.set(fileId, preload);
+  };
+
   const openDetails = (item: ProgramItem) => {
     setEnrollmentFeedback(null);
     setSelectedItem(item);
@@ -63,6 +106,14 @@ export function ProgramExplorer({
     setSelectedItem(null);
   };
 
+  useImperativeHandle(ref, () => ({
+    openActivity(item) {
+      setActive("Todo");
+      preloadFlyer(item.flyerFileId);
+      openDetails(item);
+    },
+  }));
+
   const submitEnrollment = () => {
     if (
       !selectedItem ||
@@ -71,9 +122,19 @@ export function ProgramExplorer({
     ) return;
 
     startTransition(async () => {
-      const result = await enrollInActivity(selectedItem.id);
-      setEnrollmentFeedback(result);
-      if (result.status === "success") router.refresh();
+      try {
+        const result = await enrollInActivity(selectedItem.id);
+        setEnrollmentFeedback(result);
+        if (result.status === "success") router.refresh();
+      } catch (error) {
+        console.error("No fue posible enviar la inscripcion:", error);
+        setEnrollmentFeedback({
+          status: "error",
+          code: "unavailable",
+          message:
+            "La conexión tardó demasiado. Revisa Mi cuenta antes de volver a intentarlo.",
+        });
+      }
     });
   };
 
@@ -81,10 +142,20 @@ export function ProgramExplorer({
     if (!selectedItem) return;
 
     const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = document.querySelector<HTMLElement>(".activity-modal");
+    dialog?.querySelector<HTMLButtonElement>(".activity-modal-close")?.focus({ preventScroll: true });
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isPending) {
         setEnrollmentFeedback(null);
         setSelectedItem(null);
+      }
+      if (event.key === "Tab" && dialog) {
+        const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'));
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
       }
     };
 
@@ -94,6 +165,7 @@ export function ProgramExplorer({
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
+      previousFocus?.focus({ preventScroll: true });
     };
   }, [selectedItem, isPending]);
 
@@ -120,6 +192,9 @@ export function ProgramExplorer({
               <button
                 className="program-details-button"
                 type="button"
+                onPointerEnter={() => preloadFlyer(item.flyerFileId)}
+                onFocus={() => preloadFlyer(item.flyerFileId)}
+                onTouchStart={() => preloadFlyer(item.flyerFileId)}
                 onClick={() => openDetails(item)}
               >
                 Más información <ArrowUpRight />
@@ -146,23 +221,42 @@ export function ProgramExplorer({
             aria-modal="true"
             aria-labelledby="activity-modal-title"
           >
-            <button
-              className="activity-modal-close"
-              type="button"
-              aria-label="Cerrar información"
-              onClick={closeDetails}
-            >
-              <X />
-            </button>
+            <div className="activity-modal-toolbar">
+              <button
+                className="activity-modal-close"
+                type="button"
+                aria-label="Cerrar información"
+                onClick={closeDetails}
+              >
+                <X />
+              </button>
+            </div>
 
             <div className="activity-modal-flyer">
               {selectedItem.flyerFileId ? (
-                <Image
-                  src={`/api/flyers/${encodeURIComponent(selectedItem.flyerFileId)}`}
-                  alt={`Flyer de ${selectedItem.title}`}
-                  fill
-                  sizes="(max-width: 720px) 92vw, 520px"
-                />
+                <>
+                  {!loadedFlyerIds.has(selectedItem.flyerFileId) && (
+                    <div className="activity-modal-image-loading" role="status">
+                      <span aria-hidden="true" />
+                      Cargando flyer…
+                    </div>
+                  )}
+                  <Image
+                    className={
+                      loadedFlyerIds.has(selectedItem.flyerFileId)
+                        ? "is-loaded"
+                        : "is-loading"
+                    }
+                    src={`/api/flyers/${encodeURIComponent(selectedItem.flyerFileId)}`}
+                    alt={`Flyer de ${selectedItem.title}`}
+                    fill
+                    sizes="(max-width: 720px) 92vw, 520px"
+                    quality={70}
+                    loading="eager"
+                    fetchPriority="high"
+                    onLoad={() => markFlyerLoaded(selectedItem.flyerFileId!)}
+                  />
+                </>
               ) : (
                 <div className="activity-modal-placeholder">
                   <span>{selectedItem.type}</span>
@@ -175,9 +269,21 @@ export function ProgramExplorer({
               <span className={`type-pill type-${selectedItem.type.toLowerCase()}`}>
                 {selectedItem.type}
               </span>
-              <h3 id="activity-modal-title">{selectedItem.title}</h3>
+              <h3
+                id="activity-modal-title"
+                className={
+                  selectedItem.title.length > 42
+                    ? "activity-modal-title is-very-long"
+                    : selectedItem.title.length > 26
+                      ? "activity-modal-title is-long"
+                      : "activity-modal-title"
+                }
+              >
+                {selectedItem.title}
+              </h3>
               <p>{selectedItem.fullDescription || selectedItem.description}</p>
               <div className="activity-modal-meta">
+                <span>{selectedItem.date || selectedItem.day} · {selectedItem.time}</span>
                 <span><UserRound /> {selectedItem.person}</span>
                 <span><MapPin /> {selectedItem.place}</span>
                 {(selectedItem.type === "Taller" ||
@@ -185,7 +291,7 @@ export function ProgramExplorer({
                   <span>
                     <UsersRound />{
                       selectedAvailability?.capacity
-                        ? `${selectedAvailability.remainingCapacity} lugares disponibles de ${selectedAvailability.capacity}`
+                        ? `${selectedAvailability.remainingCapacity} ${selectedAvailability.capacityUnit === "equipos" ? "equipos" : "lugares"} disponibles de ${selectedAvailability.capacity}`
                         : `Capacidad: ${selectedItem.registrationCapacity ?? "por confirmar"}`
                     }
                   </span>
@@ -194,6 +300,17 @@ export function ProgramExplorer({
               {(selectedItem.type === "Taller" ||
                 selectedItem.type === "Concurso") && (
                 <>
+                  {selectedItem.type === "Concurso" &&
+                  ((selectedAvailability?.minMembers ?? 1) > 1 ||
+                    (selectedAvailability?.maxMembers ?? 1) > 1) &&
+                  !isSelectedEnrolled &&
+                  selectedAvailability?.status === "open" ? (
+                    <TeamEnrollmentForm
+                      activityId={selectedItem.id}
+                      minMembers={selectedAvailability.minMembers ?? 1}
+                      maxMembers={selectedAvailability.maxMembers ?? 1}
+                    />
+                  ) : (
                   <button
                     className="activity-registration-button"
                     type="button"
@@ -213,6 +330,7 @@ export function ProgramExplorer({
                           ? "Ya estás inscrito"
                         : getRegistrationLabel(selectedAvailability)}
                   </button>
+                  )}
                   {enrollmentFeedback && (
                     <div
                       className={`activity-enrollment-feedback activity-enrollment-${enrollmentFeedback.status}`}

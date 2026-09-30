@@ -37,12 +37,37 @@ REGISTRATION_API_SECRET=el-mismo-secreto-de-apps-script
 
 Nunca publiques el secreto ni agregues `.env.local` a Git.
 
+## Copia rápida en Neon
+
+La aplicación conserva Google Sheets como respaldo del registro general y usa
+una copia privada en Neon para cargar `Mi cuenta` sin esperar a Apps Script.
+
+Después de publicar una nueva versión de `Code.gs`, ejecuta una vez:
+
+```powershell
+pnpm db:migrate
+pnpm db:sync-participants
+```
+
+`listRegistrations` solo responde a solicitudes que incluyan
+`REGISTRATION_API_SECRET`. El comando no imprime nombres, correos ni códigos;
+únicamente informa cuántos registros fueron sincronizados. Los registros nuevos
+se copian automáticamente en Neon, por lo que no es necesario ejecutar el
+comando diariamente.
+
 ## Lista de staff
 
 En la pestaña `Staff` utiliza estas columnas:
 
-| email | name | active |
-| --- | --- | --- |
-| persona@alumnos.udg.mx | Nombre de la persona | Sí |
+| email | name | active | staffType |
+| --- | --- | --- | --- |
+| persona@alumnos.udg.mx | Nombre de la persona | Sí | Alumno |
 
-La columna `active` acepta `Sí`, `true`, `1` o `activo`. Si el correo aparece activo, su rol será `Staff`, aunque su dominio sea de alumnos o académicos.
+La columna `active` acepta `Sí`, `true`, `1` o `activo`. `staffType` acepta
+únicamente `Alumno` o `Académico`. La clasificación es explícita y no se deduce
+del dominio del correo.
+
+Después de modificar la lista, ejecuta manualmente `setupSheets` y después
+`syncStaffClassifications` para actualizar `role` y `staffType` en los registros
+existentes. Publica una nueva versión de la aplicación web y sincroniza Neon con
+`pnpm db:migrate` y `pnpm db:sync-participants`.

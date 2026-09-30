@@ -28,12 +28,13 @@ export async function GET(request: Request) {
     rawStatus === "Confirmado" || rawStatus === "Cancelado" ? rawStatus : "Todos";
   const enrollments = await getAdminEnrollments({ search, activityId, status });
   const rows = [
-    ["ID inscripción", "ID participante", "Nombre", "Correo", "Actividad", "Tipo", "Estado", "Fecha de inscripción", "Fecha de cancelación", "Cancelado por", "Motivo"],
+    ["ID inscripción", "ID participante", "Nombre", "Correo", "Equipo", "Actividad", "Tipo", "Estado", "Fecha de inscripción", "Fecha de cancelación", "Cancelado por", "Motivo"],
     ...enrollments.map((item) => [
       item.id,
       item.participantId,
       item.participantName,
       item.participantEmail,
+      item.teamName,
       item.activityTitle,
       item.activityType,
       item.status,
