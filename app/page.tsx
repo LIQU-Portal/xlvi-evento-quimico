@@ -9,9 +9,10 @@ import { CalendarDays, ChevronRight, MapPin } from "lucide-react";
 import { content } from "@/config/content";
 import { auth } from "@/auth";
 import {
-  getParticipantEnrollmentActivityIds,
+  getParticipantActivityEnrollments,
   syncProgramActivities,
 } from "@/lib/activity-registration";
+import { lookupRegistration } from "@/lib/registration";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
@@ -36,10 +37,27 @@ export default async function Home({ searchParams }: HomeProps) {
     auth(),
     getParticipantSummary(),
   ]);
-  const [activityAvailability, enrolledActivityIds] = await Promise.all([
+  const email = session?.user?.email;
+  const [activityAvailability, activityEnrollments, registrationLookup] = await Promise.all([
     syncProgramActivities(program),
-    getParticipantEnrollmentActivityIds(session?.user?.email),
+    email
+      ? getParticipantActivityEnrollments(email).catch((error) => {
+          console.error("No fue posible consultar las inscripciones:", error);
+          return [];
+        })
+      : Promise.resolve([]),
+    email
+      ? lookupRegistration(email)
+      : Promise.resolve(null),
   ]);
+  const enrolledActivityIds = activityEnrollments.map(
+    (enrollment) => enrollment.activityId,
+  );
+  const captainedActivityIds = activityEnrollments
+    .filter((enrollment) => enrollment.isTeamCaptain !== false)
+    .map((enrollment) => enrollment.activityId);
+  const hasConfirmedRegistration =
+    registrationLookup?.registration?.status === "Confirmado";
   return (
     <main id="inicio">
       <SiteHeader user={session?.user ?? null} />
@@ -98,6 +116,9 @@ export default async function Home({ searchParams }: HomeProps) {
         items={program}
         activityAvailability={activityAvailability}
         enrolledActivityIds={enrolledActivityIds}
+        captainedActivityIds={captainedActivityIds}
+        isAuthenticated={Boolean(email)}
+        hasConfirmedRegistration={hasConfirmedRegistration}
         initialFilter={initialFilter}
         initialDay={initialAgendaDay()}
         participantSummary={participantSummary}

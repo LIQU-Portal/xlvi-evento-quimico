@@ -11,10 +11,13 @@ import { buildAgenda, eventDays, normalizeVenue } from "@/lib/program-agenda";
 import { ProgramExplorer, type ProgramExplorerHandle } from "@/components/program-explorer";
 import eventLogo from "@/public/branding/logo-evento-2026.png";
 
-export function EventProgram({ items, activityAvailability, enrolledActivityIds, initialFilter, initialDay, participantSummary }: {
+export function EventProgram({ items, activityAvailability, enrolledActivityIds, captainedActivityIds, isAuthenticated, hasConfirmedRegistration, initialFilter, initialDay, participantSummary }: {
   items: ProgramItem[];
   activityAvailability: ActivityAvailabilityMap;
   enrolledActivityIds: number[];
+  captainedActivityIds: number[];
+  isAuthenticated: boolean;
+  hasConfirmedRegistration: boolean;
   initialFilter: "Todo" | ProgramType;
   initialDay: string;
   participantSummary: ParticipantSummary;
@@ -81,7 +84,16 @@ export function EventProgram({ items, activityAvailability, enrolledActivityIds,
           <div><p className="section-index light">03 — Agenda preliminar</p><h2 id="program-title">El programa,<br /><em>de un vistazo.</em></h2></div>
           <p>Horarios, sedes y participantes están sujetos a confirmación. Usa los filtros para explorar la propuesta de agenda.</p>
         </div>
-        <ProgramExplorer ref={explorer} items={items} activityAvailability={activityAvailability} enrolledActivityIds={enrolledActivityIds} initialFilter={initialFilter} />
+        <ProgramExplorer
+          ref={explorer}
+          items={items}
+          activityAvailability={activityAvailability}
+          enrolledActivityIds={enrolledActivityIds}
+          captainedActivityIds={captainedActivityIds}
+          isAuthenticated={isAuthenticated}
+          hasConfirmedRegistration={hasConfirmedRegistration}
+          initialFilter={initialFilter}
+        />
       </div>
     </section>
   </>;

@@ -340,6 +340,7 @@ export async function getParticipantActivityEnrollments(
         enrollment.status,
         enrollment.created_at,
         activity.closes_at,
+        team.id AS team_id,
         team.name AS team_name,
         team.captain_email,
         CASE WHEN enrollment.team_id IS NULL THEN ARRAY[]::TEXT[] ELSE ARRAY(
@@ -373,7 +374,7 @@ export async function getParticipantActivityEnrollments(
       ? { teamMembers: row.team_members as string[] }
       : {}),
     isTeamCaptain:
-      !row.team_name ||
+      !row.team_id ||
       String(row.captain_email).toLowerCase() === email.toLowerCase(),
   }));
 }

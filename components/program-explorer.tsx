@@ -2,7 +2,7 @@
 
 import Image, { getImageProps } from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, MapPin, UserRound, UsersRound, X } from "lucide-react";
+import { ArrowUpRight, FileText, LockKeyhole, MapPin, Send, UserRound, UsersRound, X } from "lucide-react";
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, useTransition, type Ref } from "react";
 import { enrollInActivity } from "@/app/activity-registration-actions";
 import type { ProgramItem, ProgramType } from "@/config/content";
@@ -11,6 +11,7 @@ import type {
   ActivityAvailabilityMap,
 } from "@/lib/activity-registration";
 import { TeamEnrollmentForm } from "@/components/team-enrollment-form";
+import { isSubmissionBeforeDeadline } from "@/lib/activity-resources";
 
 const filters: Array<"Todo" | ProgramType> = ["Todo", "Conferencia", "Taller", "Concurso", "Actividad"];
 
@@ -32,12 +33,18 @@ export function ProgramExplorer({
   items,
   activityAvailability,
   enrolledActivityIds,
+  captainedActivityIds,
+  isAuthenticated,
+  hasConfirmedRegistration,
   initialFilter,
 }: {
   ref?: Ref<ProgramExplorerHandle>;
   items: ProgramItem[];
   activityAvailability: ActivityAvailabilityMap;
   enrolledActivityIds: number[];
+  captainedActivityIds: number[];
+  isAuthenticated: boolean;
+  hasConfirmedRegistration: boolean;
   initialFilter: (typeof filters)[number];
 }) {
   const router = useRouter();
@@ -59,6 +66,9 @@ export function ProgramExplorer({
     : undefined;
   const isSelectedEnrolled = selectedItem
     ? enrolledActivityIds.includes(selectedItem.id)
+    : false;
+  const isSelectedCaptain = selectedItem
+    ? captainedActivityIds.includes(selectedItem.id)
     : false;
 
   const markFlyerLoaded = (fileId: string) => {
@@ -297,6 +307,68 @@ export function ProgramExplorer({
                   </span>
                 )}
               </div>
+              {(selectedItem.hasCallForEntries || selectedItem.hasSubmissionLink) && (
+                <section className="activity-resources" aria-label="Convocatoria y entrega">
+                  <h4>Recursos</h4>
+                  {selectedItem.hasCallForEntries && (
+                    hasConfirmedRegistration ? (
+                      <a
+                        className="activity-resource-link"
+                        href={`/actividades/${selectedItem.id}/convocatoria`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <FileText /> Ver convocatoria completa <ArrowUpRight />
+                      </a>
+                    ) : (
+                      <a className="activity-resource-link is-locked" href="/mi-cuenta">
+                        <LockKeyhole />
+                        {isAuthenticated ? "Completa tu registro para verla" : "Inicia sesión para verla"}
+                      </a>
+                    )
+                  )}
+                  {selectedItem.hasSubmissionLink && (
+                    <>
+                      {hasConfirmedRegistration &&
+                      isSelectedEnrolled &&
+                      isSelectedCaptain &&
+                      selectedItem.submissionEnabled &&
+                      isSubmissionBeforeDeadline(selectedItem.submissionDeadline) ? (
+                        <a
+                          className="activity-resource-link activity-submission-link"
+                          href={`/actividades/${selectedItem.id}/entrega`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Send /> {selectedItem.submissionLabel || "Enviar participación"} <ArrowUpRight />
+                        </a>
+                      ) : (
+                        <div className="activity-resource-notice">
+                          <LockKeyhole />
+                          <span>
+                            {!hasConfirmedRegistration
+                              ? isAuthenticated
+                                ? "Completa tu registro para habilitar la entrega."
+                                : "Inicia sesión y regístrate para habilitar la entrega."
+                              : !isSelectedEnrolled
+                                ? "Inscríbete a esta actividad para habilitar la entrega."
+                                : !isSelectedCaptain
+                                  ? "La entrega debe hacerla quien registró al equipo."
+                                  : !selectedItem.submissionEnabled
+                                    ? "La recepción de trabajos no está habilitada."
+                                    : "La fecha límite de entrega ya terminó."}
+                          </span>
+                        </div>
+                      )}
+                      {selectedItem.submissionDeadline && (
+                        <small className="activity-resource-deadline">
+                          Fecha límite: {selectedItem.submissionDeadline}
+                        </small>
+                      )}
+                    </>
+                  )}
+                </section>
+              )}
               {(selectedItem.type === "Taller" ||
                 selectedItem.type === "Concurso") && (
                 <>

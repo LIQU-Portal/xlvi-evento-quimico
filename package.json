@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "db:migrate": "node --env-file=.env.local scripts/migrate-db.mjs",
     "db:sync-participants": "node --env-file=.env.local scripts/sync-participant-mirror.mjs",
-    "db:test-concurrency": "node --env-file=.env.local scripts/test-enrollment-concurrency.mjs"
+    "db:test-concurrency": "node --env-file=.env.local scripts/test-enrollment-concurrency.mjs",
+    "test:resources": "node scripts/test-activity-resources.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

@@ -76,14 +76,74 @@ type ProgramLoadOptions = {
   allowFallback?: boolean;
 };
 
-export async function getProgramFromSheets(
+type ProgramSheet = {
+  rows: string[][];
+  column: (name: string) => number;
+};
+
+export type ActivityResourceConfig = {
+  activityId: number;
+  title: string;
+  type: ProgramType;
+  callForEntriesFileId?: string;
+  submissionUrl?: string;
+  submissionLabel: string;
+  submissionDeadline?: string;
+  submissionEnabled: boolean;
+};
+
+async function loadProgramSheet(
   options: ProgramLoadOptions = {},
-): Promise<ProgramItem[]> {
+): Promise<ProgramSheet> {
   const documentId = process.env.GOOGLE_SHEETS_DOCUMENT_ID?.trim();
   const url = process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL?.trim();
   const apiKey = process.env.GOOGLE_SHEETS_API_KEY?.trim();
 
   if (!url && !(documentId && apiKey)) {
+    throw new Error("Falta configurar la fuente del programa.");
+  }
+
+  const response = await fetch(
+    url ??
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(documentId!)}/values/${encodeURIComponent("Programa!A:Z")}?key=${encodeURIComponent(apiKey!)}`,
+    options.fresh ? { cache: "no-store" } : { next: { revalidate: 60 } },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Google Sheets respondió ${response.status}`);
+  }
+
+  const allRows = url
+    ? parseCsv(await response.text())
+    : ((await response.json()) as { values?: string[][] }).values ?? [];
+  const headerIndex = allRows.findIndex(
+    (row) => row.includes("id") && row.includes("tipo") && row.includes("título"),
+  );
+
+  if (headerIndex === -1) {
+    throw new Error("No se encontraron los encabezados del programa.");
+  }
+
+  const headers = allRows[headerIndex].map((header) =>
+    header.trim().toLowerCase(),
+  );
+
+  return {
+    rows: allRows.slice(headerIndex + 1),
+    column: (name: string) => headers.indexOf(name),
+  };
+}
+
+export async function getProgramFromSheets(
+  options: ProgramLoadOptions = {},
+): Promise<ProgramItem[]> {
+  if (
+    !process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL?.trim() &&
+    !(
+      process.env.GOOGLE_SHEETS_DOCUMENT_ID?.trim() &&
+      process.env.GOOGLE_SHEETS_API_KEY?.trim()
+    )
+  ) {
     if (options.allowFallback === false) {
       throw new Error("Falta configurar la fuente del programa.");
     }
@@ -91,40 +151,9 @@ export async function getProgramFromSheets(
   }
 
   try {
-    const response = await fetch(
-      url ??
-        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(documentId!)}/values/${encodeURIComponent("Programa!A:U")}?key=${encodeURIComponent(apiKey!)}`,
-      options.fresh
-        ? { cache: "no-store" }
-        : { next: { revalidate: 60 } },
-    );
-
-    if (!response.ok) {
-      throw new Error(`Google Sheets respondió ${response.status}`);
-    }
-
-    const rows = url
-      ? parseCsv(await response.text())
-      : ((await response.json()) as { values?: string[][] }).values ?? [];
-    const headerIndex = rows.findIndex(
-      (row) =>
-        row.includes("id") &&
-        row.includes("tipo") &&
-        row.includes("título"),
-    );
-
-    if (headerIndex === -1) {
-      throw new Error("No se encontraron los encabezados del programa.");
-    }
-
-    const headers = rows[headerIndex].map((header) =>
-      header.trim().toLowerCase(),
-    );
-
-    const column = (name: string) => headers.indexOf(name);
+    const { rows, column } = await loadProgramSheet(options);
 
     const program = rows
-      .slice(headerIndex + 1)
       .filter((row) => row.some((cell) => cell.trim()))
       .filter((row) => {
         const visible = row[column("visible")]?.trim().toLowerCase();
@@ -156,6 +185,12 @@ export async function getProgramFromSheets(
         const maxMembers = Number(row[column("maxintegrantes")]?.trim());
         const date = row[column("fecha")]?.trim();
         const statusValue = row[column("estado")]?.trim().toLowerCase();
+        const callForEntriesFileId = getDriveFileId(
+          row[column("convocatoriafileid")],
+        );
+        const submissionUrl = row[column("enlaceentrega")]?.trim();
+        const submissionLabel = row[column("textoenlaceentrega")]?.trim();
+        const submissionDeadline = row[column("fechalimiteentrega")]?.trim();
 
         return {
           id: Number(row[column("id")]) || index + 1,
@@ -194,6 +229,13 @@ export async function getProgramFromSheets(
             Number.isInteger(maxMembers) && maxMembers >= minMembers
               ? maxMembers
               : 1,
+          hasCallForEntries: Boolean(callForEntriesFileId),
+          hasSubmissionLink: Boolean(submissionUrl),
+          submissionEnabled: parseCheckbox(
+            row[column("entregahabilitada")],
+          ),
+          ...(submissionLabel ? { submissionLabel } : {}),
+          ...(submissionDeadline ? { submissionDeadline } : {}),
           ...(row[column("aperturaregistro")]?.trim()
             ? {
                 registrationOpenAt: row[column("aperturaregistro")].trim(),
@@ -215,4 +257,39 @@ export async function getProgramFromSheets(
     if (options.allowFallback === false) throw error;
     return fallbackProgram();
   }
+}
+
+export async function getActivityResourceConfig(
+  activityId: number,
+  options: ProgramLoadOptions = { fresh: true, allowFallback: false },
+): Promise<ActivityResourceConfig | null> {
+  const { rows, column } = await loadProgramSheet(options);
+  const row = rows.find(
+    (candidate) => Number(candidate[column("id")]) === activityId,
+  );
+
+  if (!row) return null;
+
+  const type = row[column("tipo")]?.trim() as ProgramType;
+  const title = row[column("título")]?.trim();
+  if (!programTypes.has(type) || !title) return null;
+
+  const callForEntriesFileId = getDriveFileId(
+    row[column("convocatoriafileid")],
+  );
+  const submissionUrl = row[column("enlaceentrega")]?.trim();
+  const submissionDeadline = row[column("fechalimiteentrega")]?.trim();
+  const submissionLabel =
+    row[column("textoenlaceentrega")]?.trim() || "Enviar participación";
+
+  return {
+    activityId,
+    title,
+    type,
+    ...(callForEntriesFileId ? { callForEntriesFileId } : {}),
+    ...(submissionUrl ? { submissionUrl } : {}),
+    submissionLabel,
+    ...(submissionDeadline ? { submissionDeadline } : {}),
+    submissionEnabled: parseCheckbox(row[column("entregahabilitada")]),
+  };
 }

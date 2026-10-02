@@ -20,6 +20,11 @@ export type ProgramItem = {
   capacityUnit?: "personas" | "equipos";
   minMembers?: number;
   maxMembers?: number;
+  hasCallForEntries?: boolean;
+  hasSubmissionLink?: boolean;
+  submissionLabel?: string;
+  submissionDeadline?: string;
+  submissionEnabled?: boolean;
 };
 
 export const content = {
