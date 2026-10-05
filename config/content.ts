@@ -1,4 +1,15 @@
 export type ProgramType = "Conferencia" | "Taller" | "Concurso" | "Actividad";
+export type PartnerType = "Institución" | "Sede" | "Patrocinador" | "Colaborador";
+export type PartnerItem = {
+  id: string;
+  role: PartnerType;
+  initials: string;
+  name: string;
+  provisional: boolean;
+  logoFileId?: string;
+  href?: string;
+  order: number;
+};
 export type ProgramItem = {
   id: number;
   date?: string;
@@ -55,11 +66,11 @@ export const content = {
     { anchor: "concursos", kicker: "Imagina · resuelve · comparte", title: "Concursos", description: "Retos para poner a prueba el ingenio, la colaboración y la comunicación." },
   ],
   partners: [
-    { role: "Institución", initials: "UDG", name: "Universidad de Guadalajara", provisional: false },
-    { role: "Sede", initials: "CUCEI", name: "Centro Universitario de Ciencias Exactas e Ingenierías", provisional: false },
-    { role: "Patrocinador", initials: "+", name: "Aliado por confirmar", provisional: true },
-    { role: "Colaborador", initials: "+", name: "Aliado por confirmar", provisional: true },
-  ],
+    { id: "ALI-001", role: "Institución", initials: "UDG", name: "Universidad de Guadalajara", provisional: false, order: 1 },
+    { id: "ALI-002", role: "Sede", initials: "CUCEI", name: "Centro Universitario de Ciencias Exactas e Ingenierías", provisional: false, order: 2 },
+    { id: "ALI-003", role: "Patrocinador", initials: "+", name: "Aliado por confirmar", provisional: true, order: 3 },
+    { id: "ALI-004", role: "Colaborador", initials: "+", name: "Aliado por confirmar", provisional: true, order: 4 },
+  ] satisfies PartnerItem[],
   info: [
     { label: "Organiza", value: "Coordinación de la Licenciatura en Química" },
     { label: "Sede", value: "CUCEI · Módulo E" },

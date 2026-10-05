@@ -11,6 +11,7 @@ import {
   syncProgramActivity,
 } from "@/lib/activity-registration";
 import { lookupRegistration, lookupRegistrations } from "@/lib/registration";
+import { containsEmailAddress } from "@/lib/team-registration";
 
 function normalizeTeamEmails(emails: string[]) {
   return emails.map((email) => email.trim().toLowerCase()).filter(Boolean);
@@ -94,6 +95,9 @@ export async function enrollTeamInActivity(activityId: number, teamName: string,
     return { status: "error" as const, code: "invalid_team", message: `El equipo debe tener entre ${min} y ${max} integrantes sin correos repetidos.` };
   }
   const cleanTeamName = teamName.trim();
+  if (containsEmailAddress(cleanTeamName)) {
+    return { status: "error" as const, code: "invalid_team", message: "Escribe un nombre para tu equipo, no un correo." };
+  }
   if (memberEmails.length > 1 && cleanTeamName.length < 2) return { status: "error" as const, code: "invalid_team", message: "Escribe el nombre del equipo." };
 
   let registrations: Awaited<ReturnType<typeof lookupRegistrations>>;

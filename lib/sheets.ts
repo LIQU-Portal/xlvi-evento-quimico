@@ -1,10 +1,22 @@
-import { content, type ProgramItem, type ProgramType } from "@/config/content";
+import {
+  content,
+  type PartnerItem,
+  type PartnerType,
+  type ProgramItem,
+  type ProgramType,
+} from "@/config/content";
 
 const programTypes = new Set<ProgramType>([
   "Conferencia",
   "Taller",
   "Concurso",
   "Actividad",
+]);
+const partnerTypes = new Set<PartnerType>([
+  "Institución",
+  "Sede",
+  "Patrocinador",
+  "Colaborador",
 ]);
 
 function parseCsv(csv: string): string[][] {
@@ -45,6 +57,21 @@ function parseCsv(csv: string): string[][] {
 
 function fallbackProgram(): ProgramItem[] {
   return content.program.map((item) => ({ ...item }));
+}
+
+function fallbackPartners(): PartnerItem[] {
+  return content.partners.map((partner) => ({ ...partner }));
+}
+
+function getSafePublicUrl(value: string | undefined): string | undefined {
+  try {
+    const url = new URL(String(value ?? "").trim());
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function parseCheckbox(value: string | undefined): boolean {
@@ -292,4 +319,63 @@ export async function getActivityResourceConfig(
     ...(submissionDeadline ? { submissionDeadline } : {}),
     submissionEnabled: parseCheckbox(row[column("entregahabilitada")]),
   };
+}
+
+export async function getPartnersFromSheets(): Promise<PartnerItem[]> {
+  const url = process.env.GOOGLE_SHEETS_PARTNERS_CSV_URL?.trim();
+  if (!url) return fallbackPartners();
+
+  try {
+    const response = await fetch(url, { next: { revalidate: 300 } });
+    if (!response.ok) {
+      throw new Error(`Google Sheets respondió ${response.status}`);
+    }
+
+    const rows = parseCsv(await response.text());
+    const headerIndex = rows.findIndex(
+      (row) => row.includes("id") && row.includes("tipo") && row.includes("nombre"),
+    );
+    if (headerIndex === -1) {
+      throw new Error("No se encontraron los encabezados de Aliados.");
+    }
+
+    const headers = rows[headerIndex].map((header) =>
+      header.trim().toLowerCase(),
+    );
+    const column = (name: string) => headers.indexOf(name);
+
+    const partners = rows
+      .slice(headerIndex + 1)
+      .filter((row) => parseCheckbox(row[column("visible")]))
+      .map((row, index): PartnerItem | null => {
+        const role = row[column("tipo")]?.trim() as PartnerType;
+        const name = row[column("nombre")]?.trim();
+        const status = row[column("estado")]?.trim().toLowerCase();
+        if (!partnerTypes.has(role) || !name || status === "inactivo") {
+          return null;
+        }
+
+        const order = Number(row[column("orden")]?.trim());
+        const logoFileId = getDriveFileId(row[column("logo_url")]);
+        const href = getSafePublicUrl(row[column("sitio_web")]);
+
+        return {
+          id: row[column("id")]?.trim() || `ALI-${index + 1}`,
+          role,
+          name,
+          initials: row[column("siglas")]?.trim() || name.slice(0, 12),
+          provisional: status !== "confirmado",
+          ...(logoFileId ? { logoFileId } : {}),
+          ...(href ? { href } : {}),
+          order: Number.isFinite(order) ? order : index + 1,
+        };
+      })
+      .filter((partner): partner is PartnerItem => partner !== null)
+      .sort((a, b) => a.order - b.order);
+
+    return partners.length ? partners : fallbackPartners();
+  } catch (error) {
+    console.error("No fue posible cargar los aliados desde Sheets:", error);
+    return fallbackPartners();
+  }
 }

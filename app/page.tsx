@@ -1,7 +1,7 @@
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Activities } from "@/components/activities";
-import { getProgramFromSheets } from "@/lib/sheets";
+import { getPartnersFromSheets, getProgramFromSheets } from "@/lib/sheets";
 import { EventProgram } from "@/components/event-program";
 import { initialAgendaDay } from "@/lib/program-agenda";
 import { getParticipantSummary } from "@/lib/event-summary";
@@ -13,6 +13,7 @@ import {
   syncProgramActivities,
 } from "@/lib/activity-registration";
 import { lookupRegistration } from "@/lib/registration";
+import { PartnerCard } from "@/components/partner-card";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
@@ -32,8 +33,9 @@ export default async function Home({ searchParams }: HomeProps) {
   const requestedType = (await searchParams).tipo;
   const normalizedType = typeof requestedType === "string" ? requestedType.toLowerCase() : "";
   const initialFilter = programFilters[normalizedType as keyof typeof programFilters] ?? "Todo";
-  const [program, session, participantSummary] = await Promise.all([
+  const [program, partners, session, participantSummary] = await Promise.all([
     getProgramFromSheets(),
+    getPartnersFromSheets(),
     auth(),
     getParticipantSummary(),
   ]);
@@ -134,13 +136,8 @@ export default async function Home({ searchParams }: HomeProps) {
             <p>Este espacio está listo para incorporar las identidades aprobadas de patrocinadores y colaboradores.</p>
           </div>
           <div className="partner-grid">
-            {content.partners.map((partner) => (
-              <article key={`${partner.role}-${partner.name}`} className="partner-card">
-                <span>{partner.role}</span>
-                <div className="partner-placeholder">{partner.initials}</div>
-                <strong>{partner.name}</strong>
-                {partner.provisional && <small>Por confirmar</small>}
-              </article>
+            {partners.map((partner) => (
+              <PartnerCard key={partner.id} partner={partner} />
             ))}
           </div>
         </div>
