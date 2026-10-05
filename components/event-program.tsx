@@ -50,7 +50,7 @@ export function EventProgram({ items, activityAvailability, enrolledActivityIds,
         <div className="section-heading agenda-heading">
           <div className="agenda-heading-copy">
             <p className="section-index">02 — Un encuentro para pensar la química</p>
-            <h2 id="model-title">Conocimiento que<br /><em>se pone en práctica.</em></h2>
+            <h2 id="model-title">Conocimiento que<br /><em>se pone en práctica</em></h2>
           </div>
           <div className="agenda-logo"><Image src={eventLogo} alt="XLVI Evento del Químico 2026. Química que evoluciona, futuro que se construye." sizes="(max-width: 720px) 85vw, 420px" /></div>
         </div>
@@ -74,14 +74,14 @@ export function EventProgram({ items, activityAvailability, enrolledActivityIds,
             <p className="agenda-result-count">{selectedDay ? `${selectedDay.label} ${selectedDay.day} de octubre` : "Fecha por confirmar"} · {visible.length} {visible.length === 1 ? "actividad" : "actividades"}{venue ? " en esta sede" : ""}</p>
             <ProgramTimeline key={`${day}-${venue}`} occurrences={visible} onOpen={openActivity} />
           </div>
-          <p className="agenda-footnote">Horarios y sedes sujetos a cambios. Las actividades de varios días aparecen en cada fecha; el total las cuenta una sola vez. Las fechas por confirmar se indican con borde discontinuo.</p>
+          <p className="agenda-footnote">Horarios y sedes sujetos a cambios. Las actividades de varios días aparecen en cada fecha programada. Las fechas por confirmar se indican con borde discontinuo.</p>
         </div>
       </div>
     </section>
     <section className="section program-section" id="programa" aria-labelledby="program-title">
       <div className="container">
         <div className="section-heading program-heading">
-          <div><p className="section-index light">03 — Agenda preliminar</p><h2 id="program-title">El programa,<br /><em>de un vistazo.</em></h2></div>
+          <div><p className="section-index light">03 — Agenda preliminar</p><h2 id="program-title">El programa,<br /><em>de un vistazo</em></h2></div>
           <p>Horarios, sedes y participantes están sujetos a confirmación. Usa los filtros para explorar la propuesta de agenda.</p>
         </div>
         <ProgramExplorer

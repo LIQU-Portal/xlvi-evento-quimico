@@ -132,7 +132,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <div className="container">
           <p className="section-index">05 — Hacemos comunidad</p>
           <div className="partners-title-row">
-            <h2 id="partners-title">Instituciones<br />y aliados.</h2>
+            <h2 id="partners-title">Instituciones<br />y aliados</h2>
             <p>Este espacio está listo para incorporar las identidades aprobadas de patrocinadores y colaboradores.</p>
           </div>
           <div className="partner-grid">
@@ -147,7 +147,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <div className="container info-grid">
           <div>
             <p className="section-index light">06 — Información general</p>
-            <h2 id="info-title">Nos vemos<br /><em>en CUCEI.</em></h2>
+            <h2 id="info-title">Nos vemos<br /><em>en CUCEI</em></h2>
             <p className="info-copy">Datos provisionales para orientar a la comunidad. Confirma la información antes de difundir.</p>
           </div>
           <dl className="info-list">
