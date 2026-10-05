@@ -300,7 +300,9 @@ AS $$
 DECLARE
   selected_activity activities%ROWTYPE;
   selected_enrollment activity_enrollments%ROWTYPE;
-  reserved_units INTEGER := 1;
+  confirmed_team_members INTEGER := 0;
+  requester_is_captain BOOLEAN := FALSE;
+  cancel_whole_team BOOLEAN := FALSE;
 BEGIN
   SELECT *
     INTO selected_activity
@@ -341,22 +343,19 @@ BEGIN
     RETURN;
   END IF;
 
-  IF selected_enrollment.team_id IS NOT NULL AND NOT EXISTS (
-    SELECT 1 FROM activity_teams
-    WHERE id = selected_enrollment.team_id
-      AND LOWER(captain_email) = LOWER(requested_email)
-  ) THEN
-    RETURN QUERY SELECT 'captain_required'::TEXT,
-      selected_activity.capacity - selected_activity.reserved_count;
-    RETURN;
-  END IF;
-
-  IF selected_enrollment.team_id IS NOT NULL
-    AND selected_activity.capacity_unit = 'personas'
-  THEN
-    SELECT COUNT(*)::INTEGER INTO reserved_units
+  IF selected_enrollment.team_id IS NOT NULL THEN
+    SELECT COUNT(*)::INTEGER INTO confirmed_team_members
     FROM activity_enrollments
     WHERE team_id = selected_enrollment.team_id AND status = 'Confirmado';
+
+    SELECT EXISTS (
+      SELECT 1 FROM activity_teams
+      WHERE id = selected_enrollment.team_id
+        AND LOWER(captain_email) = LOWER(requested_email)
+    ) INTO requester_is_captain;
+
+    cancel_whole_team := requester_is_captain
+      OR confirmed_team_members - 1 < selected_activity.min_members;
   END IF;
 
   UPDATE activity_enrollments
@@ -364,25 +363,51 @@ BEGIN
         updated_at = NOW(),
         cancelled_at = NOW(),
         cancelled_by = LOWER(requested_cancelled_by),
-        cancellation_reason = requested_reason
+        cancellation_reason = CASE
+          WHEN id = selected_enrollment.id THEN requested_reason
+          ELSE 'Equipo cancelado automáticamente porque quedó por debajo del mínimo de integrantes'
+        END
     WHERE id = selected_enrollment.id
-       OR (selected_enrollment.team_id IS NOT NULL AND team_id = selected_enrollment.team_id);
+       OR (
+         selected_enrollment.team_id IS NOT NULL
+         AND cancel_whole_team
+         AND team_id = selected_enrollment.team_id
+         AND status = 'Confirmado'
+       );
 
-  IF selected_enrollment.team_id IS NOT NULL THEN
+  IF selected_enrollment.team_id IS NOT NULL AND cancel_whole_team THEN
     UPDATE activity_teams SET status = 'Cancelado', updated_at = NOW(),
       cancelled_at = NOW(), cancelled_by = LOWER(requested_cancelled_by),
-      cancellation_reason = requested_reason
+      cancellation_reason = CASE
+        WHEN requester_is_captain THEN requested_reason
+        ELSE 'Equipo cancelado automáticamente porque quedó por debajo del mínimo de integrantes'
+      END
       WHERE id = selected_enrollment.team_id;
   END IF;
 
   UPDATE activities
-    SET reserved_count = GREATEST(reserved_count - reserved_units, 0),
+    SET reserved_count = CASE
+          WHEN capacity_unit = 'personas' THEN (
+            SELECT COUNT(*)::INTEGER
+            FROM activity_enrollments
+            WHERE activity_id = requested_activity_id AND status = 'Confirmado'
+          )
+          ELSE (
+            SELECT COUNT(DISTINCT COALESCE(team_id, -activity_enrollments.id))::INTEGER
+            FROM activity_enrollments
+            WHERE activity_id = requested_activity_id AND status = 'Confirmado'
+          )
+        END,
         updated_at = NOW()
     WHERE id = requested_activity_id
     RETURNING * INTO selected_activity;
 
   RETURN QUERY
-    SELECT 'cancelled'::TEXT,
+    SELECT CASE
+        WHEN selected_enrollment.team_id IS NULL OR requester_is_captain THEN 'cancelled'::TEXT
+        WHEN cancel_whole_team THEN 'team_cancelled_minimum'::TEXT
+        ELSE 'member_left'::TEXT
+      END,
       selected_activity.capacity - selected_activity.reserved_count;
 END;
 $$;

@@ -101,7 +101,7 @@ try {
 
   await sql.query(
     `INSERT INTO activities (id, type, title, capacity, reserved_count, registration_enabled, capacity_unit, min_members, max_members)
-     VALUES ($1, 'Concurso', $2, 60, 0, TRUE, 'personas', 3, 3)`,
+     VALUES ($1, 'Concurso', $2, 60, 0, TRUE, 'personas', 2, 3)`,
     [teamActivityId, `Prueba de equipos ${testPrefix}`],
   );
   const teamResults = await Promise.all(
@@ -129,25 +129,70 @@ try {
   assert.deepEqual(teamCounts[0], { reserved: 60, teams: 20, members: 60 });
 
   const [confirmedTeam] = await sql.query(
-    `SELECT captain_participant_id, captain_email
-       FROM activity_teams
-      WHERE activity_id = $1 AND status = 'Confirmado'
-      ORDER BY id
+    `SELECT team.id, team.captain_email,
+            ARRAY(
+              SELECT enrollment.participant_email
+              FROM activity_enrollments AS enrollment
+              WHERE enrollment.team_id = team.id AND enrollment.status = 'Confirmado'
+              ORDER BY enrollment.id
+            ) AS member_emails
+       FROM activity_teams AS team
+      WHERE team.activity_id = $1 AND team.status = 'Confirmado'
+      ORDER BY team.id
       LIMIT 1`,
     [teamActivityId],
   );
-  const [cancelledTeam] = await sql.query(
+  const firstMemberEmail = confirmedTeam.member_emails.find(
+    (email) => email !== confirmedTeam.captain_email,
+  );
+  const [memberLeft] = await sql.query(
     "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
     [
       teamActivityId,
-      "stale-captain-id",
-      confirmedTeam.captain_email,
-      confirmedTeam.captain_email,
-      "Cancelación aislada de prueba",
+      "stale-member-id",
+      firstMemberEmail,
+      firstMemberEmail,
+      "Salida voluntaria aislada de prueba",
     ],
   );
-  assert.equal(cancelledTeam.outcome, "cancelled");
-  assert.equal(cancelledTeam.remaining_capacity, 3);
+  assert.equal(memberLeft.outcome, "member_left");
+  assert.equal(memberLeft.remaining_capacity, 1);
+
+  const [countsAfterMemberExit] = await sql.query(
+    `SELECT
+       (SELECT reserved_count FROM activities WHERE id = $1)::INTEGER AS reserved,
+       COUNT(DISTINCT team_id)::INTEGER AS teams,
+       COUNT(*)::INTEGER AS members
+     FROM activity_enrollments WHERE activity_id = $1 AND status = 'Confirmado'`,
+    [teamActivityId],
+  );
+  assert.deepEqual(countsAfterMemberExit, {
+    reserved: 59,
+    teams: 20,
+    members: 59,
+  });
+
+  const [remainingNonCaptain] = await sql.query(
+    `SELECT participant_email
+       FROM activity_enrollments
+      WHERE team_id = $1
+        AND status = 'Confirmado'
+        AND LOWER(participant_email) <> LOWER($2)
+      LIMIT 1`,
+    [confirmedTeam.id, confirmedTeam.captain_email],
+  );
+  const [teamBelowMinimum] = await sql.query(
+    "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
+    [
+      teamActivityId,
+      "stale-member-id",
+      remainingNonCaptain.participant_email,
+      remainingNonCaptain.participant_email,
+      "Salida que deja al equipo debajo del mínimo",
+    ],
+  );
+  assert.equal(teamBelowMinimum.outcome, "team_cancelled_minimum");
+  assert.equal(teamBelowMinimum.remaining_capacity, 3);
 
   const [countsAfterCancellation] = await sql.query(
     `SELECT
@@ -163,7 +208,42 @@ try {
     members: 57,
   });
 
-  console.log("Prueba aprobada: concurrencia y cancelación de equipos con cupo por persona, sin sobrecupo ni duplicados.");
+  const [anotherTeam] = await sql.query(
+    `SELECT captain_email
+       FROM activity_teams
+      WHERE activity_id = $1 AND status = 'Confirmado'
+      ORDER BY id
+      LIMIT 1`,
+    [teamActivityId],
+  );
+  const [captainCancellation] = await sql.query(
+    "SELECT * FROM cancel_activity_enrollment($1, $2, $3, $4, $5)",
+    [
+      teamActivityId,
+      "stale-captain-id",
+      anotherTeam.captain_email,
+      anotherTeam.captain_email,
+      "Cancelación completa solicitada por el capitán",
+    ],
+  );
+  assert.equal(captainCancellation.outcome, "cancelled");
+  assert.equal(captainCancellation.remaining_capacity, 6);
+
+  const [countsAfterCaptainCancellation] = await sql.query(
+    `SELECT
+       (SELECT reserved_count FROM activities WHERE id = $1)::INTEGER AS reserved,
+       COUNT(DISTINCT team_id)::INTEGER AS teams,
+       COUNT(*)::INTEGER AS members
+     FROM activity_enrollments WHERE activity_id = $1 AND status = 'Confirmado'`,
+    [teamActivityId],
+  );
+  assert.deepEqual(countsAfterCaptainCancellation, {
+    reserved: 54,
+    teams: 18,
+    members: 54,
+  });
+
+  console.log("Prueba aprobada: concurrencia, salida de integrantes y cancelación de equipos con cupo por persona, sin sobrecupo ni duplicados.");
 } finally {
   await sql.query("DELETE FROM activity_enrollments WHERE activity_id = $1", [teamActivityId]);
   await sql.query("DELETE FROM activity_teams WHERE activity_id = $1", [teamActivityId]);

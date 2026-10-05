@@ -48,6 +48,8 @@ export type ParticipantActivityEnrollment = {
 
 export type CancellationOutcome =
   | "cancelled"
+  | "member_left"
+  | "team_cancelled_minimum"
   | "already_cancelled"
   | "cancellation_closed"
   | "captain_required"

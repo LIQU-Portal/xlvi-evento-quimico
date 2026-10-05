@@ -7,6 +7,30 @@ import { useState, useTransition } from "react";
 import { cancelActivityEnrollment } from "@/app/activity-registration-actions";
 import type { ParticipantActivityEnrollment } from "@/lib/activity-registration";
 
+function getCancellationCopy(enrollment: ParticipantActivityEnrollment) {
+  if (!enrollment.teamName) {
+    return {
+      prompt: "¿Liberar tu lugar?",
+      confirm: "Confirmar cancelación",
+      action: "Cancelar",
+    };
+  }
+
+  if (enrollment.isTeamCaptain) {
+    return {
+      prompt: "¿Cancelar el equipo completo?",
+      confirm: "Cancelar equipo",
+      action: "Cancelar equipo",
+    };
+  }
+
+  return {
+    prompt: "¿Salir del equipo? Si deja de cumplir el mínimo, se cancelará completo.",
+    confirm: "Confirmar salida",
+    action: "Salir del equipo",
+  };
+}
+
 export function AccountActivityEnrollments({
   enrollments,
 }: {
@@ -67,46 +91,48 @@ export function AccountActivityEnrollments({
 
       {enrollments.length ? (
         <div className="account-activity-list">
-          {enrollments.map((enrollment) => (
-            <article key={enrollment.activityId} className="account-activity-item">
-              <div>
-                <span>{enrollment.type}</span>
-                <h3>{enrollment.title}</h3>
-                <p><BadgeCheck /> Inscripción confirmada</p>
-                {enrollment.teamName && (
-                  <div className="account-team-summary">
-                    <strong>{enrollment.teamName}</strong>
-                    <span>{enrollment.teamMembers?.join(" · ")}</span>
-                    <small>{enrollment.isTeamCaptain ? "Eres capitán" : "Integrante del equipo"}</small>
-                  </div>
-                )}
-              </div>
-              {confirmingActivityId === enrollment.activityId ? (
-                <div className="account-cancel-confirmation" role="group" aria-label={`Confirmar cancelación de ${enrollment.title}`}>
-                  <p>¿Liberar tu lugar?</p>
-                  <div>
-                    <button type="button" disabled={isPending} onClick={() => cancelEnrollment(enrollment)}>
-                      {pendingActivityId === enrollment.activityId ? "Cancelando…" : "Confirmar cancelación"}
-                    </button>
-                    <button type="button" disabled={isPending} onClick={() => setConfirmingActivityId(null)}>
-                      Volver
-                    </button>
-                  </div>
+          {enrollments.map((enrollment) => {
+            const copy = getCancellationCopy(enrollment);
+
+            return (
+              <article key={enrollment.activityId} className="account-activity-item">
+                <div>
+                  <span>{enrollment.type}</span>
+                  <h3>{enrollment.title}</h3>
+                  <p><BadgeCheck /> Inscripción confirmada</p>
+                  {enrollment.teamName && (
+                    <div className="account-team-summary">
+                      <strong>{enrollment.teamName}</strong>
+                      <span>{enrollment.teamMembers?.join(" · ")}</span>
+                      <small>{enrollment.isTeamCaptain ? "Eres capitán" : "Integrante del equipo"}</small>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  disabled={isPending || enrollment.isTeamCaptain === false}
-                  onClick={() => setConfirmingActivityId(enrollment.activityId)}
-                >
-                  <XCircle />
-                  {enrollment.isTeamCaptain === false
-                    ? "Cancela el capitán"
-                    : "Cancelar"}
-                </button>
-              )}
-            </article>
-          ))}
+                {confirmingActivityId === enrollment.activityId ? (
+                  <div className="account-cancel-confirmation" role="group" aria-label={`Confirmar cancelación de ${enrollment.title}`}>
+                    <p>{copy.prompt}</p>
+                    <div>
+                      <button type="button" disabled={isPending} onClick={() => cancelEnrollment(enrollment)}>
+                        {pendingActivityId === enrollment.activityId ? "Procesando…" : copy.confirm}
+                      </button>
+                      <button type="button" disabled={isPending} onClick={() => setConfirmingActivityId(null)}>
+                        Volver
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isPending || !enrollment.canCancel}
+                    onClick={() => setConfirmingActivityId(enrollment.activityId)}
+                  >
+                    <XCircle />
+                    {enrollment.canCancel ? copy.action : "Cancelación cerrada"}
+                  </button>
+                )}
+              </article>
+            );
+          })}
         </div>
       ) : (
         <p className="account-activities-empty">

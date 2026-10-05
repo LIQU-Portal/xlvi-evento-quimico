@@ -260,11 +260,22 @@ export async function cancelActivityEnrollment(activityId: number) {
     revalidatePath("/");
     revalidatePath("/mi-cuenta");
 
-    if (result.outcome === "cancelled") {
+    if (
+      result.outcome === "cancelled" ||
+      result.outcome === "member_left" ||
+      result.outcome === "team_cancelled_minimum"
+    ) {
+      const successMessages = {
+        cancelled: "La inscripción fue cancelada y el cupo quedó disponible.",
+        member_left: "Saliste del equipo y tu lugar quedó disponible.",
+        team_cancelled_minimum:
+          "Saliste del equipo. Como quedó por debajo del mínimo, su inscripción completa fue cancelada.",
+      } as const;
+
       return {
         status: "success" as const,
         code: result.outcome,
-        message: "Tu inscripción fue cancelada y el lugar quedó disponible.",
+        message: successMessages[result.outcome],
       };
     }
 
