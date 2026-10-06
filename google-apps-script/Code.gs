@@ -16,6 +16,14 @@ const REGISTRATION_HEADERS = [
 ];
 const STAFF_HEADERS = ["email", "name", "active", "staffType"];
 const DEFAULT_EVENT_BASE_URL = "https://xlvi-evento-quimico.vercel.app";
+const ALLOWED_EMAIL_DOMAINS = [
+  "alumnos.udg.mx",
+  "academicos.udg.mx",
+  "cucei.udg.mx",
+  "administrativos.udg.mx",
+  "redudg.udg.mx",
+  "mail.udg.mx",
+];
 
 function setupSheets() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -173,13 +181,17 @@ function listRegistrations_() {
 function register_(payload) {
   const email = normalizeEmail_(payload.email);
   const name = requiredText_(payload.name, "nombre", 160);
-  const accountType = payload.accountType === "Alumno" ? "Alumno" : "Profesor";
+  const accountType = getAccountTypeFromEmail_(email);
   const institutionalCode = requiredText_(
     payload.institutionalCode,
-    "código de alumno o profesor",
+    "código institucional",
     20,
   );
-  const affiliation = requiredText_(payload.affiliation, "carrera", 120);
+  const affiliation = requiredText_(
+    payload.affiliation,
+    "carrera o dependencia",
+    120,
+  );
   const spreadsheet = getSpreadsheet_();
   const registrations = ensureSheet_(
     spreadsheet,
@@ -453,10 +465,11 @@ function syncStaffClassifications() {
     const email = String(values[row][3] || "").trim();
     if (!email) continue;
 
-    const accountType = values[row][5] === "Alumno" ? "Alumno" : "Profesor";
+    const accountType = getAccountTypeFromEmail_(email);
     const staffInfo = getStaffInfo_(staff, email);
     const role = staffInfo.isStaff ? "Staff" : accountType;
 
+    registrations.getRange(row + 1, 6).setValue(accountType);
     registrations.getRange(row + 1, roleColumn).setValue(role);
     registrations
       .getRange(row + 1, staffTypeColumn)
@@ -531,6 +544,16 @@ function normalizeEmail_(value) {
   }
 
   return email;
+}
+
+function getAccountTypeFromEmail_(email) {
+  const domain = normalizeEmail_(email).split("@").pop();
+
+  if (ALLOWED_EMAIL_DOMAINS.indexOf(domain) === -1) {
+    throw new Error("El dominio del correo institucional no está autorizado.");
+  }
+
+  return domain === "alumnos.udg.mx" ? "Alumno" : "Profesor";
 }
 
 function requiredText_(value, fieldName, maxLength) {

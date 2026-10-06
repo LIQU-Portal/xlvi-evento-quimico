@@ -7,6 +7,7 @@ import {
   sendConfirmationEmail,
   type ConfirmationEmailActionState,
 } from "@/app/mi-cuenta/actions";
+import { QuantitoLoader } from "@/components/quantito-loader";
 
 const initialState: ConfirmationEmailActionState = {
   status: "idle",
@@ -25,6 +26,13 @@ export function ConfirmationEmailButton() {
         <Mail size={17} />
         {pending ? "Enviando…" : "Enviar correo con mi QR"}
       </button>
+      {pending ? (
+        <QuantitoLoader
+          variant="inline"
+          message="Enviando tu QR…"
+          detail="Esto puede tomar unos segundos."
+        />
+      ) : null}
       {state.message && (
         <p
           className={

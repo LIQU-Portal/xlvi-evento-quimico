@@ -4,6 +4,10 @@ import Google from "next-auth/providers/google";
 const allowedDomains = new Set([
   "alumnos.udg.mx",
   "academicos.udg.mx",
+  "cucei.udg.mx",
+  "administrativos.udg.mx",
+  "redudg.udg.mx",
+  "mail.udg.mx",
 ]);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({

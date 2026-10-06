@@ -7,7 +7,7 @@ import {
   type RegistrationActionState,
 } from "@/app/mi-cuenta/actions";
 import { ParticipantQr } from "@/components/participant-qr";
-import type { AccountType } from "@/lib/registration";
+import { QuantitoLoader } from "@/components/quantito-loader";
 
 const initialRegistrationState: RegistrationActionState = {
   status: "idle",
@@ -39,12 +39,12 @@ const CUCEI_CAREERS = [
   "Licenciatura en Tecnologías e Información (Virtual)",
 ] as const;
 
-const OTHER_CAREER = "Otra carrera de la UdeG";
+const OTHER_AFFILIATION = "Otra carrera, dependencia o área";
 
 type RegistrationFormProps = {
   name: string;
   email: string;
-  accountType: AccountType;
+  accountTypeLabel: string;
   serviceAvailable: boolean;
   serviceMessage?: string;
 };
@@ -52,7 +52,7 @@ type RegistrationFormProps = {
 export function RegistrationForm({
   name,
   email,
-  accountType,
+  accountTypeLabel,
   serviceAvailable,
   serviceMessage,
 }: RegistrationFormProps) {
@@ -111,15 +111,14 @@ export function RegistrationForm({
 
         <label>
           Tipo de cuenta
-          <input value={accountType} readOnly aria-readonly="true" />
+          <input value={accountTypeLabel} readOnly aria-readonly="true" />
         </label>
 
         <label>
-          Código de Alumno/Profesor
+          Código institucional
           <input
             name="institutionalCode"
             autoComplete="off"
-            inputMode="numeric"
             minLength={3}
             maxLength={20}
             required
@@ -127,37 +126,37 @@ export function RegistrationForm({
         </label>
 
         <label className="registration-wide-field">
-          Carrera
+          Carrera, dependencia o área
           <select
             value={careerSelection}
             onChange={(event) => setCareerSelection(event.target.value)}
             required
           >
             <option value="" disabled>
-              Selecciona tu carrera
+              Selecciona tu carrera o dependencia
             </option>
             {CUCEI_CAREERS.map((career) => (
               <option key={career} value={career}>
                 {career}
               </option>
             ))}
-            <option value={OTHER_CAREER}>{OTHER_CAREER}</option>
+            <option value={OTHER_AFFILIATION}>{OTHER_AFFILIATION}</option>
           </select>
           <small>
-            Ejemplo: Licenciatura en Química o Ingeniería Química.
+            Ejemplo: Licenciatura en Química, Rectoría o Administración.
           </small>
         </label>
 
-        {careerSelection === OTHER_CAREER && (
+        {careerSelection === OTHER_AFFILIATION && (
           <label className="registration-wide-field">
-            Escribe tu carrera
+            Escribe tu carrera, dependencia o área
             <input
               value={otherCareer}
               onChange={(event) => setOtherCareer(event.target.value)}
               autoComplete="organization"
               minLength={3}
               maxLength={120}
-              placeholder="Ejemplo: Licenciatura en Biología"
+              placeholder="Ejemplo: Rectoría, Administración o Licenciatura en Biología"
               required
             />
           </label>
@@ -166,7 +165,7 @@ export function RegistrationForm({
         <input
           name="affiliation"
           type="hidden"
-          value={careerSelection === OTHER_CAREER ? otherCareer : careerSelection}
+          value={careerSelection === OTHER_AFFILIATION ? otherCareer : careerSelection}
         />
       </div>
 
@@ -204,6 +203,13 @@ export function RegistrationForm({
       <button type="submit" disabled={pending || !serviceAvailable}>
         {pending ? "Guardando…" : "Confirmar mi registro"}
       </button>
+      {pending ? (
+        <QuantitoLoader
+          variant="inline"
+          message="Creando tu registro…"
+          detail="Quantito está preparando tu ID y código QR."
+        />
+      ) : null}
     </form>
   );
 }

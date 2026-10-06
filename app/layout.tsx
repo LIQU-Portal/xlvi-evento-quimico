@@ -17,7 +17,7 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "XLVI Evento del Químico | CUCEI",
   description:
-    "Sitio preliminar del XLVI Evento del Químico: ciencia, competencias y comunidad.",
+    "Sitio oficial del XLVI Evento del Químico: ciencia, competencias y comunidad.",
   icons: { icon: "/branding/isotipo.svg" },
 };
 

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 110" role="img" aria-labelledby="title desc">
-  <title id="title">XLVI Evento del Químico</title><desc id="desc">Logotipo provisional editable</desc>
+  <title id="title">XLVI Evento del Químico</title><desc id="desc">Logotipo horizontal del evento</desc>
   <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#16B4A6"/><stop offset="1" stop-color="#6C2BD9"/></linearGradient></defs>
   <path d="M53 8 94 32v48l-41 24L12 80V32Z" fill="#0D1B3D" stroke="url(#g)" stroke-width="4"/>
   <path d="M43 30h20M47 30v22L32 79h42L59 52V30" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>

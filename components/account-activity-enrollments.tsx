@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { cancelActivityEnrollment } from "@/app/activity-registration-actions";
+import { QuantitoLoader } from "@/components/quantito-loader";
 import type { ParticipantActivityEnrollment } from "@/lib/activity-registration";
 
 function getCancellationCopy(enrollment: ParticipantActivityEnrollment) {
@@ -119,6 +120,13 @@ export function AccountActivityEnrollments({
                         Volver
                       </button>
                     </div>
+                    {pendingActivityId === enrollment.activityId ? (
+                      <QuantitoLoader
+                        variant="inline"
+                        message="Actualizando tu inscripción…"
+                        detail="Quantito está liberando el lugar de forma segura."
+                      />
+                    ) : null}
                   </div>
                 ) : (
                   <button

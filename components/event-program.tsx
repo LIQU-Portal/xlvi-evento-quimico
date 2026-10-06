@@ -81,8 +81,8 @@ export function EventProgram({ items, activityAvailability, enrolledActivityIds,
     <section className="section program-section" id="programa" aria-labelledby="program-title">
       <div className="container">
         <div className="section-heading program-heading">
-          <div><p className="section-index light">03 — Agenda preliminar</p><h2 id="program-title">El programa,<br /><em>de un vistazo</em></h2></div>
-          <p>Horarios, sedes y participantes están sujetos a confirmación. Usa los filtros para explorar la propuesta de agenda.</p>
+          <div><p className="section-index light">03 — Programa del evento</p><h2 id="program-title">El programa,<br /><em>de un vistazo</em></h2></div>
+          <p>Consulta horarios, sedes y participantes. Usa los filtros para encontrar rápidamente cada actividad.</p>
         </div>
         <ProgramExplorer
           ref={explorer}

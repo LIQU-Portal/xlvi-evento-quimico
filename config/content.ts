@@ -56,7 +56,7 @@ export const content = {
     { id: 1, time: "10:00", day: "Día 1", type: "Conferencia", title: "Química para un mundo en transición", description: "Panorama de los retos científicos y profesionales que conectan la química con nuevas formas de aprender y resolver problemas.", person: "Ponente por confirmar", place: "Auditorio por confirmar" },
     { id: 2, time: "12:30", day: "Día 1", type: "Taller", title: "Laboratorio de competencias integradas", description: "Experiencia práctica para integrar fundamentos, comunicación científica, colaboración y toma de decisiones.", person: "Facilitador/a por confirmar", place: "Laboratorio por confirmar", capacity: "Cupo por definir" },
     { id: 3, time: "09:30", day: "Día 2", type: "Conferencia", title: "Del conocimiento a la competencia profesional", description: "Conversación sobre el modelo mixto basado en competencias y su relación con los escenarios reales de la profesión.", person: "Ponente por confirmar", place: "Auditorio por confirmar" },
-    { id: 4, time: "13:00", day: "Día 2", type: "Concurso", title: "Reto de innovación química", description: "Equipos multidisciplinarios proponen soluciones químicas a un desafío del entorno.", person: "Bases por publicar", place: "Sede por confirmar", capacity: "Registro próximo" },
+    { id: 4, time: "13:00", day: "Día 2", type: "Concurso", title: "Reto de innovación química", description: "Equipos multidisciplinarios proponen soluciones químicas a un desafío del entorno.", person: "Coordinación del evento", place: "Sede por confirmar", capacity: "Consulta disponibilidad" },
     { id: 5, time: "11:00", day: "Día 3", type: "Taller", title: "Datos, evidencia y comunicación científica", description: "Del dato a una conclusión clara: herramientas para analizar, argumentar y comunicar con rigor.", person: "Facilitador/a por confirmar", place: "Sala por confirmar", capacity: "Cupo por definir" },
     { id: 6, time: "12:00", day: "Día 4", type: "Actividad", title: "Encuentro de comunidad química", description: "Cierre cultural y espacio para compartir proyectos, aprendizajes y nuevas conexiones.", person: "Comunidad CUCEI", place: "Explanada por confirmar" },
   ] satisfies ProgramItem[],
@@ -68,8 +68,6 @@ export const content = {
   partners: [
     { id: "ALI-001", role: "Institución", initials: "UDG", name: "Universidad de Guadalajara", provisional: false, order: 1 },
     { id: "ALI-002", role: "Sede", initials: "CUCEI", name: "Centro Universitario de Ciencias Exactas e Ingenierías", provisional: false, order: 2 },
-    { id: "ALI-003", role: "Patrocinador", initials: "+", name: "Aliado por confirmar", provisional: true, order: 3 },
-    { id: "ALI-004", role: "Colaborador", initials: "+", name: "Aliado por confirmar", provisional: true, order: 4 },
   ] satisfies PartnerItem[],
   info: [
     { label: "Organiza", value: "Coordinación de la Licenciatura en Química" },

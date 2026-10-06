@@ -50,6 +50,15 @@ export function getAccountType(email: string): AccountType {
     : "Profesor";
 }
 
+export function getAccountTypeLabel(email: string): string {
+  const domain = email.trim().toLowerCase().split("@").at(-1);
+
+  if (domain === "alumnos.udg.mx") return "Alumno";
+  if (domain === "academicos.udg.mx") return "Profesor";
+  if (domain === "administrativos.udg.mx") return "Administrativo";
+  return "Personal UdeG";
+}
+
 function registrationFromRow(row: Record<string, unknown>): EventRegistration {
   return {
     id: String(row.id),
@@ -231,6 +240,14 @@ export async function lookupRegistration(
           state: "registered",
           registration: mirroredRegistration,
           isStaff: mirroredRegistration.role === "Staff",
+        };
+      }
+
+      if (!mirroredRegistration) {
+        return {
+          state: "not_registered",
+          registration: null,
+          isStaff: false,
         };
       }
     } catch (error) {

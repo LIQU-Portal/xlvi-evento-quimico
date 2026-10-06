@@ -11,6 +11,7 @@ import type {
   ActivityAvailabilityMap,
 } from "@/lib/activity-registration";
 import { TeamEnrollmentForm } from "@/components/team-enrollment-form";
+import { QuantitoLoader } from "@/components/quantito-loader";
 import { isSubmissionBeforeDeadline } from "@/lib/activity-resources";
 
 const filters: Array<"Todo" | ProgramType> = ["Todo", "Conferencia", "Taller", "Concurso", "Actividad"];
@@ -210,8 +211,8 @@ export function ProgramExplorer({
                 Más información <ArrowUpRight />
               </button>
             </div>
-            <span  className={`status-pill status-${(item.status ?? "Provisional").toLowerCase()}`}>
-              {item.status ?? "Provisional"}
+            <span className={`status-pill status-${(item.status ?? "Programado").toLowerCase()}`}>
+              {item.status === "Provisional" ? "Programado" : (item.status ?? "Programado")}
             </span>
           </article>
         ))}
@@ -270,7 +271,7 @@ export function ProgramExplorer({
               ) : (
                 <div className="activity-modal-placeholder">
                   <span>{selectedItem.type}</span>
-                  <strong>Flyer próximamente</strong>
+                  <strong>Información de la actividad</strong>
                 </div>
               )}
             </div>
@@ -383,25 +384,34 @@ export function ProgramExplorer({
                       maxMembers={selectedAvailability.maxMembers ?? 1}
                     />
                   ) : (
-                  <button
-                    className="activity-registration-button"
-                    type="button"
-                    disabled={
-                      isPending ||
-                      isSelectedEnrolled ||
-                      selectedAvailability?.status !== "open" ||
-                      enrollmentFeedback?.status === "success"
-                    }
-                    onClick={submitEnrollment}
-                  >
-                    {isPending
-                      ? "Confirmando inscripción..."
-                      : enrollmentFeedback?.status === "success"
-                        ? "Inscripción confirmada"
-                        : isSelectedEnrolled
-                          ? "Ya estás inscrito"
-                        : getRegistrationLabel(selectedAvailability)}
-                  </button>
+                    <>
+                      <button
+                        className="activity-registration-button"
+                        type="button"
+                        disabled={
+                          isPending ||
+                          isSelectedEnrolled ||
+                          selectedAvailability?.status !== "open" ||
+                          enrollmentFeedback?.status === "success"
+                        }
+                        onClick={submitEnrollment}
+                      >
+                        {isPending
+                          ? "Confirmando inscripción..."
+                          : enrollmentFeedback?.status === "success"
+                            ? "Inscripción confirmada"
+                            : isSelectedEnrolled
+                              ? "Ya estás inscrito"
+                              : getRegistrationLabel(selectedAvailability)}
+                      </button>
+                      {isPending ? (
+                        <QuantitoLoader
+                          variant="inline"
+                          message="Confirmando tu lugar…"
+                          detail="No cierres esta ventana."
+                        />
+                      ) : null}
+                    </>
                   )}
                   {enrollmentFeedback && (
                     <div

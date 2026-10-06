@@ -17,6 +17,21 @@ const links = [
   ["Información", "/#informacion"],
 ];
 
+function activeNavigationHref() {
+  if (window.location.pathname !== "/") return null;
+
+  const type = new URLSearchParams(window.location.search).get("tipo");
+  if (window.location.hash === "#programa") {
+    if (type === "conferencia") return "/?tipo=conferencia#programa";
+    if (type === "taller") return "/?tipo=taller#programa";
+    if (type === "concurso") return "/?tipo=concurso#programa";
+    return "/#programa";
+  }
+
+  if (window.location.hash === "#informacion") return "/#informacion";
+  return null;
+}
+
 type SiteHeaderProps = {
   user?: {
     name?: string | null;
@@ -28,6 +43,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
   const [open, setOpen] = useState(false);
   const [compact, setCompact] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [activeHref, setActiveHref] = useState<string | null>(null);
 
   useEffect(() => {
     const updateNavigation = () => {
@@ -45,17 +61,31 @@ export function SiteHeader({ user }: SiteHeaderProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const updateActiveLink = () => setActiveHref(activeNavigationHref());
+
+    updateActiveLink();
+    window.addEventListener("hashchange", updateActiveLink);
+    window.addEventListener("popstate", updateActiveLink);
+
+    return () => {
+      window.removeEventListener("hashchange", updateActiveLink);
+      window.removeEventListener("popstate", updateActiveLink);
+    };
+  }, []);
+
   const scrollToTop = () => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
     setOpen(false);
+    setActiveHref(null);
   };
 
   return (
     <>
       <header className={`site-header${compact ? " site-header-compact" : ""}${open ? " site-header-menu-open" : ""}`}>
         <div className="container header-inner">
-          <Link href="/#inicio" className="brand" aria-label="Ir al inicio">
+          <Link href="/#inicio" className="brand" aria-label="Ir al inicio" onClick={() => setActiveHref(null)}>
             <Image src="/branding/isotipo.svg" alt="" width={42} height={42} priority />
             <span><b>XLVI</b> Evento del Químico</span>
           </Link>
@@ -70,7 +100,18 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           </button>
           <nav id="main-menu" className={open ? "nav-links open" : "nav-links"} aria-label="Navegación principal">
             {links.map(([label, href]) => (
-              <Link key={href} href={href} onClick={() => setOpen(false)}>{label}</Link>
+              <Link
+                key={href}
+                href={href}
+                className={activeHref === href ? "is-active" : undefined}
+                aria-current={activeHref === href ? "location" : undefined}
+                onClick={() => {
+                  setActiveHref(href);
+                  setOpen(false);
+                }}
+              >
+                {label}
+              </Link>
             ))}
             {user ? (
               <div className="account-session-actions">

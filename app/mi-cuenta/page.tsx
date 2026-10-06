@@ -10,7 +10,7 @@ import { ParticipantQr } from "@/components/participant-qr";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { RegistrationForm } from "@/components/registration-form";
 import {
-  getAccountType,
+  getAccountTypeLabel,
   lookupRegistration,
 } from "@/lib/registration";
 import { getParticipantActivityEnrollments } from "@/lib/activity-registration";
@@ -25,7 +25,7 @@ export default async function MiCuentaPage() {
 
   const email = session.user.email.trim().toLowerCase();
   const name = session.user.name?.trim() || "Sin nombre registrado";
-  const accountType = getAccountType(email);
+  const accountTypeLabel = getAccountTypeLabel(email);
   const [lookup, activityEnrollments] = await Promise.all([
     lookupRegistration(email),
     getParticipantActivityEnrollments(email),
@@ -86,7 +86,7 @@ export default async function MiCuentaPage() {
         </section>
 
         <dl className="account-summary-strip">
-          <div><dt>Tipo de cuenta</dt><dd>{accountType}</dd></div>
+          <div><dt>Tipo de cuenta</dt><dd>{accountTypeLabel}</dd></div>
           <div>
             <dt>Registro</dt>
             <dd className={lookup.registration ? "is-confirmed" : "is-pending"}>
@@ -134,7 +134,7 @@ export default async function MiCuentaPage() {
             <RegistrationForm
               name={name}
               email={email}
-              accountType={accountType}
+              accountTypeLabel={accountTypeLabel}
               serviceAvailable
             />
           </section>

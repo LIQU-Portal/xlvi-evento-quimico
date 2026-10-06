@@ -133,7 +133,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <p className="section-index">05 — Hacemos comunidad</p>
           <div className="partners-title-row">
             <h2 id="partners-title">Instituciones<br />y aliados</h2>
-            <p>Este espacio está listo para incorporar las identidades aprobadas de patrocinadores y colaboradores.</p>
+            <p>Instituciones, patrocinadores y colaboradores que hacen posible el XLVI Evento del Químico.</p>
           </div>
           <div className="partner-grid">
             {partners.map((partner) => (
@@ -148,7 +148,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <div>
             <p className="section-index light">06 — Información general</p>
             <h2 id="info-title">Nos vemos<br /><em>en CUCEI</em></h2>
-            <p className="info-copy">Datos provisionales para orientar a la comunidad. Confirma la información antes de difundir.</p>
+            <p className="info-copy">Consulta aquí la sede, las fechas y los medios oficiales de contacto del evento.</p>
           </div>
           <dl className="info-list">
             {content.info.map((item) => (

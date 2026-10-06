@@ -32,7 +32,7 @@ export default async function SignInPage() {
             Continuar con Google
           </button>
         </form>
-        <small>Solo cuentas @alumnos.udg.mx y @academicos.udg.mx</small>
+        <small>Acceso con cuentas institucionales autorizadas de la UdeG</small>
       </section>
     </main>
   );

@@ -8,7 +8,7 @@ export function SiteFooter() {
           <Image src="/branding/isotipo.svg" alt="" width={52} height={52} />
           <div><strong>XLVI Evento del Químico</strong><span>Universidad de Guadalajara · CUCEI</span></div>
         </div>
-        <p>Sitio y contenidos en versión preliminar · 2026</p>
+        <p>Sitio oficial del XLVI Evento del Químico · 2026</p>
         <a href="#inicio">Volver arriba ↑</a>
       </div>
     </footer>

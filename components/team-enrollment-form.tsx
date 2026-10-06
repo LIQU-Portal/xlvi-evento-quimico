@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { enrollTeamInActivity, validateTeamMembers } from "@/app/activity-registration-actions";
+import { QuantitoLoader } from "@/components/quantito-loader";
 import { containsEmailAddress } from "@/lib/team-registration";
 
 export function TeamEnrollmentForm({ activityId, minMembers, maxMembers }: { activityId: number; minMembers: number; maxMembers: number }) {
@@ -79,6 +80,13 @@ export function TeamEnrollmentForm({ activityId, minMembers, maxMembers }: { act
       {emails.length < maxMembers - 1 && <button className="team-add-member" type="button" onClick={() => { setEmails((current) => [...current, ""]); setValidated(false); }}><Plus /> Agregar integrante</button>}
       <p className="team-size-note">{minMembers === maxMembers ? `${minMembers} integrantes obligatorios` : `De ${minMembers} a ${maxMembers} integrantes`}</p>
       <button className="activity-registration-button" type="button" disabled={pending || Boolean(teamNameError) || emails.some((email) => !email.trim())} onClick={validated ? submit : validate}>{pending ? "Revisando…" : validated ? "Confirmar inscripción" : "Validar equipo"}</button>
+      {pending ? (
+        <QuantitoLoader
+          variant="inline"
+          message={validated ? "Inscribiendo al equipo…" : "Revisando integrantes…"}
+          detail="Quantito está comprobando los datos."
+        />
+      ) : null}
       {members.length > 0 && <ul className="team-validation-list">{members.map((member) => <li key={member.email} className={member.valid ? "valid" : "invalid"}>{member.valid ? <CheckCircle2 /> : <XCircle />}<span>{member.valid ? member.name : member.email}</span></li>)}</ul>}
       {feedback && <p className="team-feedback" role="status">{feedback}</p>}
     </div>
