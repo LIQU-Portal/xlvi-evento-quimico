@@ -16,6 +16,7 @@ const REGISTRATION_HEADERS = [
 ];
 const STAFF_HEADERS = ["email", "name", "active", "staffType"];
 const DEFAULT_EVENT_BASE_URL = "https://xlvi-evento-quimico.vercel.app";
+const CONFIRMATION_SENDER_EMAIL = "cdquim@cucei.udg.mx";
 const ALLOWED_EMAIL_DOMAINS = [
   "alumnos.udg.mx",
   "academicos.udg.mx",
@@ -39,6 +40,22 @@ function setupSheets() {
 
 function checkEmailQuota() {
   Logger.log(`Correos disponibles hoy: ${MailApp.getRemainingDailyQuota()}`);
+}
+
+function checkConfirmationSender() {
+  const effectiveEmail = String(Session.getEffectiveUser().getEmail() || "")
+    .trim()
+    .toLowerCase();
+
+  Logger.log(`Cuenta que ejecuta: ${effectiveEmail || "no disponible"}`);
+
+  if (effectiveEmail !== CONFIRMATION_SENDER_EMAIL) {
+    throw new Error(
+      `La aplicación debe ejecutarse como ${CONFIRMATION_SENDER_EMAIL}.`,
+    );
+  }
+
+  Logger.log(`Remitente autorizado: ${CONFIRMATION_SENDER_EMAIL}`);
 }
 
 function doPost(event) {
@@ -351,18 +368,20 @@ function sendConfirmationEmail_(registration, qrBlob) {
   const safeName = htmlEscape_(registration.name);
   const safeId = htmlEscape_(registration.id);
   const safeRole = htmlEscape_(registration.role);
-
-  MailApp.sendEmail({
+  const subject = "Registro confirmado | Evento del Químico 2026";
+  const body =
+    `Hola ${registration.name},\n\n` +
+    "Tu registro al Evento del Químico 2026 quedó confirmado.\n" +
+    `ID de participante: ${registration.id}\n` +
+    `Rol: ${registration.role}\n\n` +
+    `Tu código QR personal está adjunto. También puedes consultarlo en ${accountUrl}\n\n` +
+    "Química que evoluciona, futuro que se construye.";
+  const emailOptions = {
     to: registration.email,
+    subject,
+    body,
     name: "Evento del Químico 2026",
-    subject: "Registro confirmado | Evento del Químico 2026",
-    body:
-      `Hola ${registration.name},\n\n` +
-      "Tu registro al Evento del Químico 2026 quedó confirmado.\n" +
-      `ID de participante: ${registration.id}\n` +
-      `Rol: ${registration.role}\n\n` +
-      `Tu código QR personal está adjunto. También puedes consultarlo en ${accountUrl}\n\n` +
-      "Química que evoluciona, futuro que se construye.",
+    replyTo: CONFIRMATION_SENDER_EMAIL,
     htmlBody:
       `<div style="font-family:Arial,sans-serif;color:#121f48;line-height:1.6;max-width:620px;margin:auto">` +
       `<p style="color:#6c2bd9;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Evento del Químico 2026</p>` +
@@ -379,7 +398,17 @@ function sendConfirmationEmail_(registration, qrBlob) {
       "</div>",
     inlineImages: { participantQr: qrBlob },
     attachments: [qrBlob.copyBlob()],
-  });
+  };
+  const effectiveEmail = String(Session.getEffectiveUser().getEmail() || "")
+    .trim()
+    .toLowerCase();
+  if (effectiveEmail !== CONFIRMATION_SENDER_EMAIL) {
+    throw new Error(
+      `La aplicación debe ejecutarse como ${CONFIRMATION_SENDER_EMAIL}.`,
+    );
+  }
+
+  MailApp.sendEmail(emailOptions);
 }
 
 function createQrToken_(participantId) {
