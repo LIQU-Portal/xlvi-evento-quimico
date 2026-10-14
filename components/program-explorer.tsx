@@ -214,6 +214,12 @@ export function ProgramExplorer({
                 <span><MapPin /> {item.place}</span>
                 {item.capacity && <span><UsersRound /> {item.capacity}</span>}
               </div>
+              {item.type === "Conferencia" && Boolean(item.speakers?.length) && (
+                <p className="program-speaker-preview">
+                  <strong>{item.speakers?.length === 1 ? "Semblanza disponible:" : "Semblanzas disponibles:"}</strong>{" "}
+                  {item.speakers?.map((speaker) => speaker.name).join(", ")}
+                </p>
+              )}
               <button
                 className="program-details-button"
                 type="button"
@@ -222,7 +228,7 @@ export function ProgramExplorer({
                 onTouchStart={() => preloadFlyer(item.flyerFileId)}
                 onClick={() => openDetails(item)}
               >
-                Más información <ArrowUpRight />
+                {item.type === "Conferencia" && item.speakers?.length ? "Ver semblanzas" : "Más información"} <ArrowUpRight />
               </button>
             </div>
             <span className={`status-pill status-${(item.status ?? "Programado").toLowerCase()}`}>

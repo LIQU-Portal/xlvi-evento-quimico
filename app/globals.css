@@ -310,6 +310,8 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
 .program-main > p { margin: 0; color: rgba(255,255,255,.66); line-height: 1.65; }
 .program-meta { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 18px; color: rgba(255,255,255,.62); font-size: .72rem; }
 .program-meta span { display: inline-flex; align-items: center; gap: 6px; }.program-meta svg { width: 14px; height: 14px; color: var(--cyan); }
+.program-main > .program-speaker-preview { margin-top: 14px; font-size: .75rem; }
+.program-speaker-preview strong { color: var(--cyan); }
 .program-details-button { margin-top: 22px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid rgba(255,255,255,.28); border-radius: 999px; color: white; background: rgba(255,255,255,.06); font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
 .program-details-button:hover { border-color: var(--cyan); background: rgba(255,255,255,.12); transform: translateY(-1px); }
 .program-details-button svg { width: 15px; height: 15px; }

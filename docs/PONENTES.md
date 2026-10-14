@@ -16,8 +16,10 @@ de `Programa`; `orden` controla la secuencia cuando hay varios ponentes.
 La actividad 32 está preparada con la ficha de Q. Mayra Vazquez y su semblanza.
 No tiene foto, así que la página muestra solo texto. Para agregar una foto,
 recomendamos JPG o WebP de 800 × 1000 píxeles (relación 4:5), hasta 2 MB,
-con el rostro centrado en la parte superior. El archivo de Drive debe poder
-leerse públicamente. La página recorta el retrato para ajustarlo a la ficha.
+con el rostro centrado en la parte superior. En cada foto de Drive configura
+**Acceso general → Cualquier persona con el enlace → Lector**: el servidor
+necesita descargarla sin iniciar sesión. La página recorta el retrato para
+ajustarlo a la ficha y oculta una imagen que no se pueda descargar.
 
 ## Publicar la pestaña
 
