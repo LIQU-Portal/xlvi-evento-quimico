@@ -13,6 +13,7 @@ import type {
 import { TeamEnrollmentForm } from "@/components/team-enrollment-form";
 import { QuantitoLoader } from "@/components/quantito-loader";
 import { isSubmissionBeforeDeadline } from "@/lib/activity-resources";
+import type { SpeakerProfile } from "@/lib/speaker-profiles";
 
 const filters: Array<"Todo" | ProgramType> = ["Todo", "Conferencia", "Taller", "Concurso", "Actividad"];
 
@@ -37,6 +38,41 @@ function SpeakerPhoto({ fileId, name }: { fileId?: string; name: string }) {
       width={112} height={140} sizes="(max-width: 720px) 88px, 112px"
       onError={() => setFailed(true)} />
   </div>;
+}
+
+const biographyPreviewLength = 170;
+
+function SpeakerCard({ speaker, position, total }: { speaker: SpeakerProfile; position: number; total: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const biography = speaker.biography.trim();
+  const hasMore = biography.length > biographyPreviewLength;
+  const previewEnd = biography.lastIndexOf(" ", biographyPreviewLength);
+  const preview = hasMore
+    ? `${biography.slice(0, previewEnd > biographyPreviewLength - 35 ? previewEnd : biographyPreviewLength).trimEnd()}…`
+    : biography;
+
+  return (
+    <article className="activity-speaker">
+      <div className="activity-speaker-heading">
+        <SpeakerPhoto fileId={speaker.photoFileId} name={speaker.name} />
+        <div>
+          {total > 1 && <span className="activity-speaker-position">Ponente {position} de {total}</span>}
+          <h5>{speaker.name}</h5>
+        </div>
+      </div>
+      <p>{expanded ? biography : preview}</p>
+      {hasMore && (
+        <button
+          className="activity-speaker-toggle"
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded ? "Ver menos" : "Leer semblanza completa"}
+        </button>
+      )}
+    </article>
+  );
 }
 
 export function ProgramExplorer({
@@ -304,12 +340,16 @@ export function ProgramExplorer({
               </div>
               {selectedItem.type === "Conferencia" && selectedSpeakers.length > 0 && (
                 <section className="activity-speakers" aria-label="Ponentes de la conferencia">
-                  <h4>{selectedSpeakers.length === 1 ? "Ponente" : "Ponentes"}</h4>
+                  <h4>{selectedSpeakers.length === 1 ? "Ponente" : `Ponentes (${selectedSpeakers.length})`}</h4>
                   <div className="activity-speaker-list">
-                    {selectedSpeakers.map((speaker) => <article className="activity-speaker" key={`${speaker.activityId}:${speaker.order}:${speaker.name}`}>
-                      <SpeakerPhoto fileId={speaker.photoFileId} name={speaker.name} />
-                      <div><h5>{speaker.name}</h5><p>{speaker.biography}</p></div>
-                    </article>)}
+                    {selectedSpeakers.map((speaker, index) => (
+                      <SpeakerCard
+                        key={`${speaker.activityId}:${speaker.order}:${speaker.name}`}
+                        speaker={speaker}
+                        position={index + 1}
+                        total={selectedSpeakers.length}
+                      />
+                    ))}
                   </div>
                 </section>
               )}
