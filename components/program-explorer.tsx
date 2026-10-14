@@ -32,45 +32,34 @@ function getRegistrationLabel(availability?: ActivityAvailability) {
 
 function SpeakerPhoto({ fileId, name }: { fileId?: string; name: string }) {
   const [failed, setFailed] = useState(false);
-  if (!fileId || failed) return null;
-  return <div className="activity-speaker-photo">
-    <Image src={`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w320`} alt={`Fotografía de ${name}`}
-      width={112} height={140} sizes="(max-width: 720px) 88px, 112px"
-      onError={() => setFailed(true)} />
-  </div>;
+  return (
+    <div className={`activity-speaker-photo${!fileId || failed ? " is-placeholder" : ""}`}>
+      {fileId && !failed ? (
+        <Image src={`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w320`} alt={`Fotografía de ${name}`}
+          width={160} height={200} sizes="(max-width: 720px) 40vw, 160px"
+          onError={() => setFailed(true)} />
+      ) : (
+        <><UserRound aria-hidden="true" /><span>Sin foto</span></>
+      )}
+    </div>
+  );
 }
 
-const biographyPreviewLength = 170;
-
-function SpeakerCard({ speaker, position, total }: { speaker: SpeakerProfile; position: number; total: number }) {
-  const [expanded, setExpanded] = useState(false);
-  const biography = speaker.biography.trim();
-  const hasMore = biography.length > biographyPreviewLength;
-  const previewEnd = biography.lastIndexOf(" ", biographyPreviewLength);
-  const preview = hasMore
-    ? `${biography.slice(0, previewEnd > biographyPreviewLength - 35 ? previewEnd : biographyPreviewLength).trimEnd()}…`
-    : biography;
-
+function SpeakerCard({ speaker, selected, onToggle }: { speaker: SpeakerProfile; selected: boolean; onToggle: () => void }) {
   return (
-    <article className="activity-speaker">
-      <div className="activity-speaker-heading">
-        <SpeakerPhoto fileId={speaker.photoFileId} name={speaker.name} />
-        <div>
-          {total > 1 && <span className="activity-speaker-position">Ponente {position} de {total}</span>}
-          <h5>{speaker.name}</h5>
-        </div>
-      </div>
-      <p>{expanded ? biography : preview}</p>
-      {hasMore && (
-        <button
-          className="activity-speaker-toggle"
-          type="button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((current) => !current)}
-        >
-          {expanded ? "Ver menos" : "Leer semblanza completa"}
-        </button>
-      )}
+    <article className={`activity-speaker${selected ? " is-selected" : ""}`}>
+      <SpeakerPhoto fileId={speaker.photoFileId} name={speaker.name} />
+      <h5>{speaker.name}</h5>
+      <button
+        className="activity-speaker-toggle"
+        type="button"
+        aria-controls={selected ? "activity-speaker-biography" : undefined}
+        aria-expanded={selected}
+        aria-label={`${selected ? "Ocultar" : "Ver"} semblanza de ${speaker.name}`}
+        onClick={onToggle}
+      >
+        {selected ? "Ocultar semblanza" : "Ver semblanza"}
+      </button>
     </article>
   );
 }
@@ -97,6 +86,7 @@ export function ProgramExplorer({
   const router = useRouter();
   const [active, setActive] = useState<(typeof filters)[number]>(initialFilter);
   const [selectedItem, setSelectedItem] = useState<ProgramItem | null>(null);
+  const [selectedSpeakerIndex, setSelectedSpeakerIndex] = useState<number | null>(null);
   const [loadedFlyerIds, setLoadedFlyerIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -115,6 +105,7 @@ export function ProgramExplorer({
     : undefined;
   const selectedDescription = selectedItem?.fullDescription || selectedItem?.description || "";
   const selectedSpeakers = selectedItem?.speakers ?? [];
+  const selectedSpeaker = selectedSpeakerIndex === null ? null : selectedSpeakers[selectedSpeakerIndex] ?? null;
   const descriptionIsBiography = selectedSpeakers.some((speaker) =>
     speaker.biography === selectedDescription) ?? false;
   const isSelectedEnrolled = selectedItem
@@ -135,12 +126,14 @@ export function ProgramExplorer({
 
   const openDetails = (item: ProgramItem) => {
     setEnrollmentFeedback(null);
+    setSelectedSpeakerIndex(null);
     setSelectedItem(item);
   };
 
   const closeDetails = () => {
     if (isPending) return;
     setEnrollmentFeedback(null);
+    setSelectedSpeakerIndex(null);
     setSelectedItem(null);
   };
 
@@ -185,6 +178,7 @@ export function ProgramExplorer({
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isPending) {
         setEnrollmentFeedback(null);
+        setSelectedSpeakerIndex(null);
         setSelectedItem(null);
       }
       if (event.key === "Tab" && dialog) {
@@ -205,6 +199,14 @@ export function ProgramExplorer({
       previousFocus?.focus({ preventScroll: true });
     };
   }, [selectedItem, isPending]);
+
+  useEffect(() => {
+    if (!selectedSpeaker) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById("activity-speaker-biography")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedSpeaker]);
 
   return (
     <div>
@@ -346,11 +348,17 @@ export function ProgramExplorer({
                       <SpeakerCard
                         key={`${speaker.activityId}:${speaker.order}:${speaker.name}`}
                         speaker={speaker}
-                        position={index + 1}
-                        total={selectedSpeakers.length}
+                        selected={selectedSpeakerIndex === index}
+                        onToggle={() => setSelectedSpeakerIndex((current) => current === index ? null : index)}
                       />
                     ))}
                   </div>
+                  {selectedSpeaker && (
+                    <div className="activity-speaker-biography" id="activity-speaker-biography">
+                      <h5>Semblanza de {selectedSpeaker.name}</h5>
+                      <p>{selectedSpeaker.biography}</p>
+                    </div>
+                  )}
                 </section>
               )}
               {(selectedItem.hasCallForEntries || selectedItem.hasSubmissionLink) && (
