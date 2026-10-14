@@ -19,7 +19,9 @@ recomendamos JPG o WebP de 800 × 1000 píxeles (relación 4:5), hasta 2 MB,
 con el rostro centrado en la parte superior. En cada foto de Drive configura
 **Acceso general → Cualquier persona con el enlace → Lector**: el servidor
 necesita descargarla sin iniciar sesión. La página recorta el retrato para
-ajustarlo a la ficha y oculta una imagen que no se pueda descargar.
+ajustarlo a la ficha y oculta una imagen que no se pueda descargar. Para acelerar
+la carga, usa la miniatura pública de 320 píxeles que sirve Google, sin pasar
+por la optimización de imágenes de Vercel.
 
 ## Publicar la pestaña
 

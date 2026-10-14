@@ -1,9 +1,9 @@
 "use client";
 
-import Image, { getImageProps } from "next/image";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, FileText, LockKeyhole, MapPin, Send, UserRound, UsersRound, X } from "lucide-react";
-import { useEffect, useImperativeHandle, useMemo, useRef, useState, useTransition, type Ref } from "react";
+import { useEffect, useImperativeHandle, useMemo, useState, useTransition, type Ref } from "react";
 import { enrollInActivity } from "@/app/activity-registration-actions";
 import type { ProgramItem, ProgramType } from "@/config/content";
 import type {
@@ -33,7 +33,7 @@ function SpeakerPhoto({ fileId, name }: { fileId?: string; name: string }) {
   const [failed, setFailed] = useState(false);
   if (!fileId || failed) return null;
   return <div className="activity-speaker-photo">
-    <Image src={`/api/flyers/${encodeURIComponent(fileId)}`} alt={`Fotografía de ${name}`}
+    <Image src={`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w320`} alt={`Fotografía de ${name}`}
       width={112} height={140} sizes="(max-width: 720px) 88px, 112px"
       onError={() => setFailed(true)} />
   </div>;
@@ -64,7 +64,9 @@ export function ProgramExplorer({
   const [loadedFlyerIds, setLoadedFlyerIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const flyerPreloads = useRef(new Map<string, HTMLImageElement>());
+  const [failedFlyerIds, setFailedFlyerIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [enrollmentFeedback, setEnrollmentFeedback] = useState<{
     status: "success" | "error";
     code: string;
@@ -95,31 +97,6 @@ export function ProgramExplorer({
     });
   };
 
-  const preloadFlyer = (fileId?: string) => {
-    if (!fileId || typeof window === "undefined" || flyerPreloads.current.has(fileId)) {
-      return;
-    }
-
-    const src = `/api/flyers/${encodeURIComponent(fileId)}`;
-    const { props } = getImageProps({
-      src,
-      alt: "",
-      width: 520,
-      height: 650,
-      sizes: "(max-width: 720px) 92vw, 520px",
-      quality: 70,
-    });
-    const preload = new window.Image();
-
-    preload.decoding = "async";
-    preload.fetchPriority = "high";
-    if (props.srcSet) preload.srcset = props.srcSet;
-    if (props.sizes) preload.sizes = props.sizes;
-    preload.onload = () => markFlyerLoaded(fileId);
-    preload.src = props.src;
-    flyerPreloads.current.set(fileId, preload);
-  };
-
   const openDetails = (item: ProgramItem) => {
     setEnrollmentFeedback(null);
     setSelectedItem(item);
@@ -134,7 +111,6 @@ export function ProgramExplorer({
   useImperativeHandle(ref, () => ({
     openActivity(item) {
       setActive("Todo");
-      preloadFlyer(item.flyerFileId);
       openDetails(item);
     },
   }));
@@ -223,9 +199,6 @@ export function ProgramExplorer({
               <button
                 className="program-details-button"
                 type="button"
-                onPointerEnter={() => preloadFlyer(item.flyerFileId)}
-                onFocus={() => preloadFlyer(item.flyerFileId)}
-                onTouchStart={() => preloadFlyer(item.flyerFileId)}
                 onClick={() => openDetails(item)}
               >
                 {item.type === "Conferencia" && item.speakers?.length ? "Ver semblanzas" : "Más información"} <ArrowUpRight />
@@ -264,7 +237,7 @@ export function ProgramExplorer({
             </div>
 
             <div className="activity-modal-flyer">
-              {selectedItem.flyerFileId ? (
+              {selectedItem.flyerFileId && !failedFlyerIds.has(selectedItem.flyerFileId) ? (
                 <>
                   {!loadedFlyerIds.has(selectedItem.flyerFileId) && (
                     <div className="activity-modal-image-loading" role="status">
@@ -286,12 +259,13 @@ export function ProgramExplorer({
                     loading="eager"
                     fetchPriority="high"
                     onLoad={() => markFlyerLoaded(selectedItem.flyerFileId!)}
+                    onError={() => setFailedFlyerIds((current) => new Set(current).add(selectedItem.flyerFileId!))}
                   />
                 </>
               ) : (
                 <div className="activity-modal-placeholder">
                   <span>{selectedItem.type}</span>
-                  <strong>Información de la actividad</strong>
+                  <strong>{selectedItem.flyerFileId ? "Flyer no disponible" : "Información de la actividad"}</strong>
                 </div>
               )}
             </div>
