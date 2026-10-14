@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { preconnect } from "react-dom";
 import { ArrowUpRight, FileText, LockKeyhole, MapPin, Send, UserRound, UsersRound, X } from "lucide-react";
 import { useEffect, useImperativeHandle, useMemo, useState, useTransition, type Ref } from "react";
 import { enrollInActivity } from "@/app/activity-registration-actions";
@@ -32,12 +33,17 @@ function getRegistrationLabel(availability?: ActivityAvailability) {
 
 function SpeakerPhoto({ fileId, name }: { fileId?: string; name: string }) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   return (
     <div className={`activity-speaker-photo${!fileId || failed ? " is-placeholder" : ""}`}>
       {fileId && !failed ? (
-        <Image src={`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w320`} alt={`Fotografía de ${name}`}
-          width={160} height={200} sizes="(max-width: 720px) 40vw, 160px"
-          onError={() => setFailed(true)} />
+        <>
+          {!loaded && <span className="activity-speaker-photo-loading" role="status">Cargando foto…</span>}
+          <Image src={`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w320`} alt={`Fotografía de ${name}`}
+            className={loaded ? "is-loaded" : "is-loading"}
+            width={160} height={200} sizes="(max-width: 720px) 40vw, 160px"
+            loading="eager" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
+        </>
       ) : (
         <><UserRound aria-hidden="true" /><span>Sin foto</span></>
       )}
@@ -83,6 +89,9 @@ export function ProgramExplorer({
   hasConfirmedRegistration: boolean;
   initialFilter: (typeof filters)[number];
 }) {
+  if (items.some((item) => item.speakers?.some((speaker) => speaker.photoFileId))) {
+    preconnect("https://lh3.googleusercontent.com");
+  }
   const router = useRouter();
   const [active, setActive] = useState<(typeof filters)[number]>(initialFilter);
   const [selectedItem, setSelectedItem] = useState<ProgramItem | null>(null);

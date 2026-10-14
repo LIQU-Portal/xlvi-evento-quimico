@@ -343,8 +343,10 @@ h2 em { color: var(--purple); font-family: Georgia, serif; font-weight: 400; }
 .activity-speaker-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .activity-speaker { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px; border: 1px solid rgba(18,31,72,.1); border-radius: 16px; background: white; text-align: center; }
 .activity-speaker.is-selected { border-color: #6c2bd9; background: #faf7ff; }
-.activity-speaker-photo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 12px; background: #edf0fa; }
+.activity-speaker-photo { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 12px; background: #edf0fa; }
 .activity-speaker-photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.activity-speaker-photo img.is-loading { opacity: 0; }
+.activity-speaker-photo-loading { position: absolute; inset: 0; display: grid; place-items: center; padding: 8px; color: #59627d; font-size: .7rem; font-weight: 700; text-align: center; }
 .activity-speaker-photo.is-placeholder { color: #737b93; font-size: .72rem; }
 .activity-speaker-photo.is-placeholder svg { width: 36px; height: 36px; }
 .activity-speaker h5 { flex: 1; margin: 0; font-family: var(--font-title); font-size: .88rem; line-height: 1.3; overflow-wrap: anywhere; }
