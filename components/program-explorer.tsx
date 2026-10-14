@@ -29,6 +29,16 @@ function getRegistrationLabel(availability?: ActivityAvailability) {
   return "Inscribirme";
 }
 
+function SpeakerPhoto({ fileId, name }: { fileId?: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!fileId || failed) return null;
+  return <div className="activity-speaker-photo">
+    <Image src={`/api/flyers/${encodeURIComponent(fileId)}`} alt={`Fotografía de ${name}`}
+      width={112} height={140} sizes="(max-width: 720px) 88px, 112px"
+      onError={() => setFailed(true)} />
+  </div>;
+}
+
 export function ProgramExplorer({
   ref,
   items,
@@ -65,6 +75,10 @@ export function ProgramExplorer({
   const selectedAvailability = selectedItem
     ? activityAvailability[selectedItem.id]
     : undefined;
+  const selectedDescription = selectedItem?.fullDescription || selectedItem?.description || "";
+  const selectedSpeakers = selectedItem?.speakers ?? [];
+  const descriptionIsBiography = selectedSpeakers.some((speaker) =>
+    speaker.biography === selectedDescription) ?? false;
   const isSelectedEnrolled = selectedItem
     ? enrolledActivityIds.includes(selectedItem.id)
     : false;
@@ -292,10 +306,10 @@ export function ProgramExplorer({
               >
                 {selectedItem.title}
               </h3>
-              <p>{selectedItem.fullDescription || selectedItem.description}</p>
+              {!descriptionIsBiography && <p>{selectedDescription}</p>}
               <div className="activity-modal-meta">
                 <span>{selectedItem.date || selectedItem.day} · {selectedItem.time}</span>
-                <span><UserRound /> {selectedItem.person}</span>
+                {!selectedSpeakers.length && <span><UserRound /> {selectedItem.person}</span>}
                 <span><MapPin /> {selectedItem.place}</span>
                 {(selectedItem.type === "Taller" ||
                   selectedItem.type === "Concurso") && (
@@ -308,6 +322,17 @@ export function ProgramExplorer({
                   </span>
                 )}
               </div>
+              {selectedItem.type === "Conferencia" && selectedSpeakers.length > 0 && (
+                <section className="activity-speakers" aria-label="Ponentes de la conferencia">
+                  <h4>{selectedSpeakers.length === 1 ? "Ponente" : "Ponentes"}</h4>
+                  <div className="activity-speaker-list">
+                    {selectedSpeakers.map((speaker) => <article className="activity-speaker" key={`${speaker.activityId}:${speaker.order}:${speaker.name}`}>
+                      <SpeakerPhoto fileId={speaker.photoFileId} name={speaker.name} />
+                      <div><h5>{speaker.name}</h5><p>{speaker.biography}</p></div>
+                    </article>)}
+                  </div>
+                </section>
+              )}
               {(selectedItem.hasCallForEntries || selectedItem.hasSubmissionLink) && (
                 <section className="activity-resources" aria-label="Convocatoria y entrega">
                   <h4>Recursos</h4>

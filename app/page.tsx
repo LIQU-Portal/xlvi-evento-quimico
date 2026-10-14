@@ -1,7 +1,7 @@
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Activities } from "@/components/activities";
-import { getPartnersFromSheets, getProgramFromSheets } from "@/lib/sheets";
+import { getPartnersFromSheets, getProgramFromSheets, getSpeakersFromSheets } from "@/lib/sheets";
 import { EventProgram } from "@/components/event-program";
 import { initialAgendaDay } from "@/lib/program-agenda";
 import { getParticipantSummary } from "@/lib/event-summary";
@@ -33,12 +33,20 @@ export default async function Home({ searchParams }: HomeProps) {
   const requestedType = (await searchParams).tipo;
   const normalizedType = typeof requestedType === "string" ? requestedType.toLowerCase() : "";
   const initialFilter = programFilters[normalizedType as keyof typeof programFilters] ?? "Todo";
-  const [program, partners, session, participantSummary] = await Promise.all([
+  const [program, partners, speakers, session, participantSummary] = await Promise.all([
     getProgramFromSheets(),
     getPartnersFromSheets(),
+    getSpeakersFromSheets(),
     auth(),
     getParticipantSummary(),
   ]);
+  const speakersByActivity = new Map<number, typeof speakers>();
+  for (const speaker of speakers) {
+    speakersByActivity.set(speaker.activityId, [...(speakersByActivity.get(speaker.activityId) ?? []), speaker]);
+  }
+  const programWithSpeakers = program.map((item) => item.type === "Conferencia"
+    ? { ...item, speakers: speakersByActivity.get(item.id) ?? [] }
+    : item);
   const email = session?.user?.email;
   const [activityAvailability, activityEnrollments, registrationLookup] = await Promise.all([
     syncProgramActivities(program),
@@ -115,7 +123,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <EventProgram
         key={initialFilter}
-        items={program}
+        items={programWithSpeakers}
         activityAvailability={activityAvailability}
         enrolledActivityIds={enrolledActivityIds}
         captainedActivityIds={captainedActivityIds}
