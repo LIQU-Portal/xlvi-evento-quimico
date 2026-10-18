@@ -1,9 +1,10 @@
 "use client";
 
-import Image, { getImageProps } from "next/image";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { preconnect } from "react-dom";
 import { ArrowUpRight, FileText, LockKeyhole, MapPin, Send, UserRound, UsersRound, X } from "lucide-react";
-import { useEffect, useImperativeHandle, useMemo, useRef, useState, useTransition, type Ref } from "react";
+import { useEffect, useImperativeHandle, useMemo, useState, useTransition, type Ref } from "react";
 import { enrollInActivity } from "@/app/activity-registration-actions";
 import type { ProgramItem, ProgramType } from "@/config/content";
 import type {
@@ -13,6 +14,7 @@ import type {
 import { TeamEnrollmentForm } from "@/components/team-enrollment-form";
 import { QuantitoLoader } from "@/components/quantito-loader";
 import { isSubmissionBeforeDeadline } from "@/lib/activity-resources";
+import type { SpeakerProfile } from "@/lib/speaker-profiles";
 
 const filters: Array<"Todo" | ProgramType> = ["Todo", "Conferencia", "Taller", "Concurso", "Actividad"];
 
@@ -27,6 +29,45 @@ function getRegistrationLabel(availability?: ActivityAvailability) {
   if (availability.status === "closed") return "Inscripciones cerradas";
   if (availability.status === "full") return "Cupo agotado";
   return "Inscribirme";
+}
+
+function SpeakerPhoto({ fileId, name }: { fileId?: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className={`activity-speaker-photo${!fileId || failed ? " is-placeholder" : ""}`}>
+      {fileId && !failed ? (
+        <>
+          {!loaded && <span className="activity-speaker-photo-loading" role="status">Cargando foto…</span>}
+          <Image src={`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w320`} alt={`Fotografía de ${name}`}
+            className={loaded ? "is-loaded" : "is-loading"}
+            width={160} height={200} sizes="(max-width: 720px) 40vw, 160px"
+            loading="eager" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
+        </>
+      ) : (
+        <><UserRound aria-hidden="true" /><span>Sin foto</span></>
+      )}
+    </div>
+  );
+}
+
+function SpeakerCard({ speaker, selected, onToggle }: { speaker: SpeakerProfile; selected: boolean; onToggle: () => void }) {
+  return (
+    <article className={`activity-speaker${selected ? " is-selected" : ""}`}>
+      <SpeakerPhoto fileId={speaker.photoFileId} name={speaker.name} />
+      <h5>{speaker.name}</h5>
+      <button
+        className="activity-speaker-toggle"
+        type="button"
+        aria-controls={selected ? "activity-speaker-biography" : undefined}
+        aria-expanded={selected}
+        aria-label={`${selected ? "Ocultar" : "Ver"} semblanza de ${speaker.name}`}
+        onClick={onToggle}
+      >
+        {selected ? "Ocultar semblanza" : "Ver semblanza"}
+      </button>
+    </article>
+  );
 }
 
 export function ProgramExplorer({
@@ -48,13 +89,19 @@ export function ProgramExplorer({
   hasConfirmedRegistration: boolean;
   initialFilter: (typeof filters)[number];
 }) {
+  if (items.some((item) => item.speakers?.some((speaker) => speaker.photoFileId))) {
+    preconnect("https://lh3.googleusercontent.com");
+  }
   const router = useRouter();
   const [active, setActive] = useState<(typeof filters)[number]>(initialFilter);
   const [selectedItem, setSelectedItem] = useState<ProgramItem | null>(null);
+  const [selectedSpeakerIndex, setSelectedSpeakerIndex] = useState<number | null>(null);
   const [loadedFlyerIds, setLoadedFlyerIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const flyerPreloads = useRef(new Map<string, HTMLImageElement>());
+  const [failedFlyerIds, setFailedFlyerIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [enrollmentFeedback, setEnrollmentFeedback] = useState<{
     status: "success" | "error";
     code: string;
@@ -65,6 +112,11 @@ export function ProgramExplorer({
   const selectedAvailability = selectedItem
     ? activityAvailability[selectedItem.id]
     : undefined;
+  const selectedDescription = selectedItem?.fullDescription || selectedItem?.description || "";
+  const selectedSpeakers = selectedItem?.speakers ?? [];
+  const selectedSpeaker = selectedSpeakerIndex === null ? null : selectedSpeakers[selectedSpeakerIndex] ?? null;
+  const descriptionIsBiography = selectedSpeakers.some((speaker) =>
+    speaker.biography === selectedDescription) ?? false;
   const isSelectedEnrolled = selectedItem
     ? enrolledActivityIds.includes(selectedItem.id)
     : false;
@@ -81,46 +133,22 @@ export function ProgramExplorer({
     });
   };
 
-  const preloadFlyer = (fileId?: string) => {
-    if (!fileId || typeof window === "undefined" || flyerPreloads.current.has(fileId)) {
-      return;
-    }
-
-    const src = `/api/flyers/${encodeURIComponent(fileId)}`;
-    const { props } = getImageProps({
-      src,
-      alt: "",
-      width: 520,
-      height: 650,
-      sizes: "(max-width: 720px) 92vw, 520px",
-      quality: 70,
-    });
-    const preload = new window.Image();
-
-    preload.decoding = "async";
-    preload.fetchPriority = "high";
-    if (props.srcSet) preload.srcset = props.srcSet;
-    if (props.sizes) preload.sizes = props.sizes;
-    preload.onload = () => markFlyerLoaded(fileId);
-    preload.src = props.src;
-    flyerPreloads.current.set(fileId, preload);
-  };
-
   const openDetails = (item: ProgramItem) => {
     setEnrollmentFeedback(null);
+    setSelectedSpeakerIndex(null);
     setSelectedItem(item);
   };
 
   const closeDetails = () => {
     if (isPending) return;
     setEnrollmentFeedback(null);
+    setSelectedSpeakerIndex(null);
     setSelectedItem(null);
   };
 
   useImperativeHandle(ref, () => ({
     openActivity(item) {
       setActive("Todo");
-      preloadFlyer(item.flyerFileId);
       openDetails(item);
     },
   }));
@@ -159,6 +187,7 @@ export function ProgramExplorer({
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !isPending) {
         setEnrollmentFeedback(null);
+        setSelectedSpeakerIndex(null);
         setSelectedItem(null);
       }
       if (event.key === "Tab" && dialog) {
@@ -180,6 +209,14 @@ export function ProgramExplorer({
     };
   }, [selectedItem, isPending]);
 
+  useEffect(() => {
+    if (!selectedSpeaker) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById("activity-speaker-biography")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedSpeaker]);
+
   return (
     <div>
       <div className="filter-row" role="group" aria-label="Filtrar actividades">
@@ -200,15 +237,18 @@ export function ProgramExplorer({
                 <span><MapPin /> {item.place}</span>
                 {item.capacity && <span><UsersRound /> {item.capacity}</span>}
               </div>
+              {item.type === "Conferencia" && Boolean(item.speakers?.length) && (
+                <p className="program-speaker-preview">
+                  <strong>{item.speakers?.length === 1 ? "Semblanza disponible:" : "Semblanzas disponibles:"}</strong>{" "}
+                  {item.speakers?.map((speaker) => speaker.name).join(", ")}
+                </p>
+              )}
               <button
                 className="program-details-button"
                 type="button"
-                onPointerEnter={() => preloadFlyer(item.flyerFileId)}
-                onFocus={() => preloadFlyer(item.flyerFileId)}
-                onTouchStart={() => preloadFlyer(item.flyerFileId)}
                 onClick={() => openDetails(item)}
               >
-                Más información <ArrowUpRight />
+                {item.type === "Conferencia" && item.speakers?.length ? "Ver semblanzas" : "Más información"} <ArrowUpRight />
               </button>
             </div>
             <span className={`status-pill status-${(item.status ?? "Programado").toLowerCase()}`}>
@@ -244,7 +284,7 @@ export function ProgramExplorer({
             </div>
 
             <div className="activity-modal-flyer">
-              {selectedItem.flyerFileId ? (
+              {selectedItem.flyerFileId && !failedFlyerIds.has(selectedItem.flyerFileId) ? (
                 <>
                   {!loadedFlyerIds.has(selectedItem.flyerFileId) && (
                     <div className="activity-modal-image-loading" role="status">
@@ -266,12 +306,13 @@ export function ProgramExplorer({
                     loading="eager"
                     fetchPriority="high"
                     onLoad={() => markFlyerLoaded(selectedItem.flyerFileId!)}
+                    onError={() => setFailedFlyerIds((current) => new Set(current).add(selectedItem.flyerFileId!))}
                   />
                 </>
               ) : (
                 <div className="activity-modal-placeholder">
                   <span>{selectedItem.type}</span>
-                  <strong>Información de la actividad</strong>
+                  <strong>{selectedItem.flyerFileId ? "Flyer no disponible" : "Información de la actividad"}</strong>
                 </div>
               )}
             </div>
@@ -292,10 +333,10 @@ export function ProgramExplorer({
               >
                 {selectedItem.title}
               </h3>
-              <p>{selectedItem.fullDescription || selectedItem.description}</p>
+              {!descriptionIsBiography && <p>{selectedDescription}</p>}
               <div className="activity-modal-meta">
                 <span>{selectedItem.date || selectedItem.day} · {selectedItem.time}</span>
-                <span><UserRound /> {selectedItem.person}</span>
+                {!selectedSpeakers.length && <span><UserRound /> {selectedItem.person}</span>}
                 <span><MapPin /> {selectedItem.place}</span>
                 {(selectedItem.type === "Taller" ||
                   selectedItem.type === "Concurso") && (
@@ -308,6 +349,27 @@ export function ProgramExplorer({
                   </span>
                 )}
               </div>
+              {selectedItem.type === "Conferencia" && selectedSpeakers.length > 0 && (
+                <section className="activity-speakers" aria-label="Ponentes de la conferencia">
+                  <h4>{selectedSpeakers.length === 1 ? "Ponente" : `Ponentes (${selectedSpeakers.length})`}</h4>
+                  <div className="activity-speaker-list">
+                    {selectedSpeakers.map((speaker, index) => (
+                      <SpeakerCard
+                        key={`${speaker.activityId}:${speaker.order}:${speaker.name}`}
+                        speaker={speaker}
+                        selected={selectedSpeakerIndex === index}
+                        onToggle={() => setSelectedSpeakerIndex((current) => current === index ? null : index)}
+                      />
+                    ))}
+                  </div>
+                  {selectedSpeaker && (
+                    <div className="activity-speaker-biography" id="activity-speaker-biography">
+                      <h5>Semblanza de {selectedSpeaker.name}</h5>
+                      <p>{selectedSpeaker.biography}</p>
+                    </div>
+                  )}
+                </section>
+              )}
               {(selectedItem.hasCallForEntries || selectedItem.hasSubmissionLink) && (
                 <section className="activity-resources" aria-label="Convocatoria y entrega">
                   <h4>Recursos</h4>

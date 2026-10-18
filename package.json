@@ -14,7 +14,8 @@
     "test:resources": "node scripts/test-activity-resources.mjs",
     "test:team-validation": "node scripts/test-team-registration.mjs",
     "db:migrate-attendance": "node --env-file=.env.local scripts/migrate-attendance.mjs",
-    "test:attendance": "node scripts/test-attendance.mjs"
+    "test:attendance": "node scripts/test-attendance.mjs",
+    "test:speakers": "node scripts/test-speaker-profiles.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

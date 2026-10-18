@@ -5,6 +5,7 @@ import {
   type ProgramItem,
   type ProgramType,
 } from "@/config/content";
+import { parseSpeakerProfiles, type SpeakerProfile } from "@/lib/speaker-profiles";
 
 const programTypes = new Set<ProgramType>([
   "Conferencia",
@@ -283,6 +284,30 @@ export async function getProgramFromSheets(
     console.error("No fue posible cargar el programa desde Sheets:", error);
     if (options.allowFallback === false) throw error;
     return fallbackProgram();
+  }
+}
+
+export async function getSpeakersFromSheets(): Promise<SpeakerProfile[]> {
+  let url = getSafePublicUrl(process.env.GOOGLE_SHEETS_SPEAKERS_CSV_URL);
+  if (!url) {
+    const programUrl = getSafePublicUrl(process.env.GOOGLE_SHEETS_PROGRAM_CSV_URL);
+    if (programUrl) {
+      const candidate = new URL(programUrl);
+      if (candidate.hostname === "docs.google.com" && candidate.searchParams.has("gid")) {
+        candidate.searchParams.set("gid", "1007");
+        url = candidate.toString();
+      }
+    }
+  }
+  if (!url) return [];
+
+  try {
+    const response = await fetch(url, { next: { revalidate: 60 } });
+    if (!response.ok) throw new Error(`La hoja Ponentes respondió ${response.status}`);
+    return parseSpeakerProfiles(parseCsv(await response.text()));
+  } catch (error) {
+    console.error("No fue posible cargar los ponentes desde Sheets:", error);
+    return [];
   }
 }
 

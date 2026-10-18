@@ -1,3 +1,5 @@
+import type { SpeakerProfile } from "@/lib/speaker-profiles";
+
 export type ProgramType = "Conferencia" | "Taller" | "Concurso" | "Actividad";
 export type PartnerType = "Institución" | "Sede" | "Patrocinador" | "Colaborador";
 export type PartnerItem = {
@@ -19,6 +21,7 @@ export type ProgramItem = {
   title: string;
   description: string;
   person: string;
+  speakers?: SpeakerProfile[];
   place: string;
   capacity?: string;
   status?: "Provisional" | "Confirmado";
