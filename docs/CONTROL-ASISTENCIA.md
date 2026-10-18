@@ -58,6 +58,13 @@ explícitamente el modo activo; al cambiarlo se pausa la cámara para evitar reg
    No hay migraciones en `next build`.
 5. Publicar el Preview y autorizar su callback Google:
    `https://<alias-estable-de-la-rama>/api/auth/callback/google`.
+   El build de `feature/control-asistencia-qr` en Preview verifica primero que
+   `DATABASE_URL` tenga la huella de destino `b619c2fac063` (la rama de Neon de
+   pruebas comprobada al configurar esta entrega). Consulta tablas y función sin
+   modificar datos. Si el destino es otro, detiene el build antes de conectarse.
+   Si se reemplaza la rama/base de pruebas, revisar su destino y actualizar
+   explícitamente la huella en `scripts/check-attendance-preview.mjs`.
+   Esta comprobación no se ejecuta en Production ni en otras ramas.
 6. Iniciar sesión como coordinador. Habilitar a la cuenta staff en la sección 1.
 7. En “Pruebas internas”, crear las cinco simulaciones de hoy. Son tres conferencias,
    con A y B simultáneas, un taller y un concurso. No se insertan en Sheets ni en el catálogo público.

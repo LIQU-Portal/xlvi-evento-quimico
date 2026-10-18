@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/check-attendance-preview.mjs && next build",
     "start": "next start",
     "lint": "eslint .",
     "db:migrate": "node --env-file=.env.local scripts/migrate-db.mjs",
