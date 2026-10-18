@@ -15,6 +15,7 @@ import {
 } from "@/lib/registration";
 import { getParticipantActivityEnrollments } from "@/lib/activity-registration";
 import { isActivityAdmin } from "@/lib/activity-admin";
+import { attendanceAccess } from "@/lib/attendance";
 
 export default async function MiCuentaPage() {
   const session = await auth();
@@ -26,9 +27,10 @@ export default async function MiCuentaPage() {
   const email = session.user.email.trim().toLowerCase();
   const name = session.user.name?.trim() || "Sin nombre registrado";
   const accountTypeLabel = getAccountTypeLabel(email);
-  const [lookup, activityEnrollments] = await Promise.all([
+  const [lookup, activityEnrollments, attendance] = await Promise.all([
     lookupRegistration(email),
     getParticipantActivityEnrollments(email),
+    attendanceAccess(email),
   ]);
   const canAdministerActivities = isActivityAdmin(email);
   const firstName = name.split(/\s+/)[0];
@@ -51,6 +53,8 @@ export default async function MiCuentaPage() {
           </Link>
 
           <div className="account-header-actions">
+            {attendance.operator && <Link className="account-admin-link" href="/registro-asistencia">Registrar asistencia</Link>}
+            {attendance.admin && <Link className="account-admin-link" href="/administracion/asistencia">Coordinar asistencia</Link>}
             {canAdministerActivities && (
               <Link className="account-admin-link" href="/administracion/inscripciones">
                 <ShieldCheck size={16} /> Administración

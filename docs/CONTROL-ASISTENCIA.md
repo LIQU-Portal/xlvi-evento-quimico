@@ -1,0 +1,108 @@
+# Control de asistencia por QR
+
+Rama: `feature/control-asistencia-qr`. Se reutilizan el inicio de sesión Google,
+los participantes y los QR existentes. No requiere emitir nuevos QR ni modificar Code.gs.
+
+## Reglas de esta entrega
+
+- Conferencias: una entrada y una salida por participante y sesión. La salida exige entrada previa.
+- Talleres y concursos: una entrada por participante y sesión/día. Exige inscripción confirmada (cada miembro del equipo presenta su QR).
+- Actividades generales del programa: una entrada, sin exigir inscripción a taller/concurso.
+- Ventana para ambos tipos de lectura: todo el día de la sesión (00:00 a 23:59:59),
+  usando `America/Mexico_City` y el reloj del servidor.
+- El lector muestra solo sesiones asignadas del día actual. Coordinación puede asignar todos los días.
+- Una segunda lectura del mismo tipo devuelve “Ya estaba registrado”. No alterna entrada y salida automáticamente.
+- No se calculan horas acreditadas todavía. Entrada y salida son evidencia para una regla posterior de constancias.
+- Internet obligatorio. Si una petición pierde respuesta, repetir es seguro por la unicidad de los registros.
+- Captura manual por ID exige motivo; se conserva operador, hora y motivo.
+
+## Cuentas y asignaciones
+
+No se crean cuentas ni perfiles públicos nuevos. Los dos coordinadores usan sus cuentas Google existentes.
+Sus correos se configuran en `ATTENDANCE_ADMIN_EMAILS`, separados por comas. Este permiso
+no otorga automáticamente permiso de escaneo: un coordinador que también escanee debe habilitarse como operador.
+Solo se admiten los coordinadores autorizados: `cdquim@cucei.udg.mx` y `jorge.lopezarce@academicos.udg.mx`.
+Una dirección adicional en la variable no obtiene acceso.
+
+En `/administracion/asistencia`, el coordinador habilita únicamente a los ocho integrantes de staff de registro
+y marca sus sesiones asignadas. La misma sesión admite varios operadores; una persona puede tener varias sesiones.
+Cada operador debe estar registrado, confirmado y clasificado `Staff` en el espejo de Neon.
+Se admite staff alumno y académico con el mismo permiso. Una cuenta participante no muestra el lector
+y tampoco puede invocar directamente la API ni abrir las rutas administrativas.
+
+Cambiar una asignación surte efecto en la siguiente lectura del servidor, aunque el operador conserve abierta la pantalla.
+El operador vuelve a abrir el panel para refrescar sus tarjetas. Para revocación inmediata, desactivar
+el acceso en coordinación; cambiar solo la hoja de staff requiere ejecutar la sincronización existente
+`pnpm db:sync-participants` para actualizar el espejo de Neon.
+
+El contador del lector refleja las lecturas conocidas por ese panel; volver a abrirlo consulta el total.
+La tabla administrativa y el CSV consultan los registros guardados. Entrada y salida muestran
+explícitamente el modo activo; al cambiarlo se pausa la cámara para evitar registrar accidentalmente otra dirección.
+
+## Preparar Preview
+
+1. Usar una rama/base de Neon de pruebas para este Preview y comprobar sus variables de conexión.
+   No reutilizar por accidente el destino de producción para la validación.
+2. Tener el esquema actual y el espejo de los participantes de prueba disponibles en esa base.
+3. Configurar `ATTENDANCE_ADMIN_EMAILS` y `ATTENDANCE_SIMULATION_ENABLED=true` solo en local / Preview.
+   En producción las simulaciones se bloquean incluso si la variable queda en true.
+4. Ejecutar explícitamente `pnpm db:migrate-attendance` con `.env.local` apuntando al destino elegido.
+   Añade tablas y función de asistencia; no borra ni cambia participantes o inscripciones.
+   No hay migraciones en `next build`.
+5. Publicar el Preview y autorizar su callback Google:
+   `https://<alias-estable-de-la-rama>/api/auth/callback/google`.
+6. Iniciar sesión como coordinador. Habilitar a la cuenta staff en la sección 1.
+7. En “Pruebas internas”, crear las cinco simulaciones de hoy. Son tres conferencias,
+   con A y B simultáneas, un taller y un concurso. No se insertan en Sheets ni en el catálogo público.
+8. Asignar las simulaciones al staff. El operador cierra y abre `/registro-asistencia`.
+
+Las simulaciones conservan los horarios de su primera creación de ese día; pulsar el botón otra vez
+no mueve sesiones con lecturas. Crear al comenzar las pruebas. Si se retoman al día siguiente,
+crear las de ese nuevo día. No hay reloj ficticio ni bypass del horario real.
+
+## Prueba guiada de 30–40 minutos
+
+Usar dos teléfonos o un teléfono para escanear y otra pantalla para mostrar el QR.
+Cuenta S: staff de registro. Cuenta P: participante confirmado. Cuenta C opcional: segundo operador.
+El coordinador puede ser S para las pruebas, añadiendo su correo al permiso correspondiente.
+
+| Prueba | Instrucciones | Resultado esperado |
+| --- | --- | --- |
+| Permisos | P abre Mi cuenta y luego intenta `/registro-asistencia` y `/administracion/asistencia` | No ve enlaces de registro/coordinación y vuelve a Mi cuenta al abrirlos directamente |
+| Selección | S abre Registrar asistencia | Solo ve sus sesiones, identifica fecha, horario y lugar |
+| Cámara | S abre Conferencia A y pulsa Abrir cámara; acepta permiso | Vista trasera y modo ENTRADAS visible |
+| Entrada | S lee el QR de P | Verde, nombre, ID, hora; una entrada |
+| Duplicado | Retirar el QR, esperar 3 segundos y mostrarlo otra vez | Amarillo; el conteo no sube |
+| Salida | S elige Salida y vuelve a abrir cámara; lee el QR de P | Una salida guardada; repetir devuelve duplicado |
+| Salida sin entrada | S elige Salida en Conferencia B y lee a P | Solicita entrada previa; no guarda salida |
+| Simultáneas | Registrar entrada de P en Conferencia B | Registro independiente de A; nunca cambia de sesión por sí solo |
+| Inscripción | Sin autorizar aún el roster de prueba, S lee P en el taller y concurso | “No tiene inscripción activa” |
+| Inscripción de prueba | Coordinador introduce el ID de P en “Guardar inscripción de simulación”; S vuelve a leerlo | Entrada permitida en taller y concurso; sin botón Salida |
+| QR ajeno | S lee un QR de una web cualquiera | Se rechaza y el lector sigue utilizable |
+| Escáner físico | Conectar el lector USB/Bluetooth, enfocar el campo y leer el QR (configurar sufijo Enter) | Mismo resultado que cámara; duplicado si ya había entrada |
+| Respaldo | En Conferencia C, S selecciona Capturar ID, escribe ID de P y motivo | Se registra con source manual y motivo en CSV; motivo vacío no se admite |
+| Conexión | Desactivar internet, leer otro QR y volver a activar internet | No anuncia éxito sin confirmación; repetir no duplica |
+| Dos lectores | Opcional: asignar también C a la misma conferencia; S y C leen P a la vez en una sesión aún sin entrada | Solo una entrada; el otro lector indica duplicado |
+| Revocación | El coordinador desactiva S; S intenta otra lectura con el panel abierto | Acceso rechazado inmediatamente |
+| Exportación | Coordinador filtra por sesión y descarga CSV | Coinciden nombre, ID, sesión, entradas/salidas, operadores y motivos |
+
+También se prueban automáticamente el día incorrecto, los límites de la ventana y las actividades multidía.
+No es necesario cambiar fechas de actividades públicas para estas pruebas.
+
+## Comprobaciones de desarrollo
+
+`pnpm test:attendance`: usa PostgreSQL en memoria (PGlite), sin `.env` ni Neon.
+Verifica permisos, asignaciones, sesiones simultáneas, roster de simulación, entradas/salidas,
+duplicados, captura manual, fechas, ventanas, multidía y CSV.
+Envía 150 solicitudes al motor local: una entrada y 149 duplicados. PGlite tiene una sola conexión;
+esta prueba no sustituye la prueba entre conexiones reales y cámaras físicas en Preview.
+
+Ejecutar además `pnpm lint`, `pnpm build` y `git diff --check`.
+
+## Paso a producción
+
+Tras aprobar Preview, aplicar `database/attendance.sql` explícitamente al destino de producción,
+configurar los dos coordinadores y dejar `ATTENDANCE_SIMULATION_ENABLED=false`.
+Sincronizar las sesiones reales desde el panel, revisar sus fechas/horarios y asignar los ocho operadores.
+El módulo falla cerrado mientras no se configuren coordinadores ni operadores.
+Conservar la evidencia de las pruebas y realizar una lectura de comprobación antes del acceso masivo.
