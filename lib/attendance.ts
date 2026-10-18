@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSql } from "@/lib/db";
+import { attendanceOperatorListQuery, type AttendanceOperatorOption } from "@/lib/attendance-operator-list";
 import { getProgramFromSheets } from "@/lib/sheets";
 import { attendanceMessages, inspectAttendanceSchedule, isAuthorizedCoordinator, areSimulationsEnabled, validScanReference,
   type AttendanceResult, type AttendanceSession } from "@/lib/attendance-rules";
@@ -51,9 +52,14 @@ export async function listAttendanceSessions(operatorEmail?: string) {
   return rows.map((r) => sessionFromRow(r as Record<string, unknown>));
 }
 
-export async function listAttendanceOperators() {
-  return getSql().query(`SELECT o.email, o.active, p.name, p.role, p.status FROM attendance_operators o
-    LEFT JOIN participants p ON lower(p.email) = o.email ORDER BY o.email`);
+export async function listAttendanceOperators(): Promise<AttendanceOperatorOption[]> {
+  const rows = await getSql().query(attendanceOperatorListQuery);
+  return rows.map((row) => ({
+    email: String(row.email), name: row.name == null ? null : String(row.name),
+    role: row.role == null ? null : String(row.role), status: row.status == null ? null : String(row.status),
+    staffType: row.staff_type == null ? null : String(row.staff_type),
+    active: Boolean(row.active), configured: Boolean(row.configured),
+  }));
 }
 
 export async function scanAttendance(input: {

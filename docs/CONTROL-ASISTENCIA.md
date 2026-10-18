@@ -28,7 +28,11 @@ Solo se admiten los coordinadores autorizados: `cdquim@cucei.udg.mx` y `jorge.lo
 Una dirección adicional en la variable no obtiene acceso.
 
 En `/administracion/asistencia`, el coordinador habilita únicamente a los ocho integrantes de staff de registro
-y marca sus sesiones asignadas. La misma sesión admite varios operadores; una persona puede tener varias sesiones.
+y marca sus sesiones asignadas. El paso 1 lista el staff confirmado del espejo de Neon, permite buscar
+por nombre/correo y habilitar o desactivar cada cuenta sin escribir direcciones. Aparecer en la lista no
+otorga permisos. Las cuentas revocadas con acceso previo se conservan visibles para desactivarlas.
+El paso 3 permite filtrar por día, tipo y programa/simulación; abrir cada tarjeta muestra sus operadores.
+La misma sesión admite varios operadores; una persona puede tener varias sesiones.
 Cada operador debe estar registrado, confirmado y clasificado `Staff` en el espejo de Neon.
 Se admite staff alumno y académico con el mismo permiso. Una cuenta participante no muestra el lector
 y tampoco puede invocar directamente la API ni abrir las rutas administrativas.

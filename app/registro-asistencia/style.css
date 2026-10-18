@@ -56,3 +56,53 @@
 .attendance-page table { width: 100%; border-collapse: collapse; font-size: .85rem; }
 .attendance-page th, .attendance-page td { padding: 12px; text-align: left; border-bottom: 1px solid #d9e0f0; white-space: nowrap; }
 .attendance-form-message { padding: 12px; background: #eff4fc; border-radius: 8px; }
+.attendance-admin-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 12px; }
+.attendance-admin-form fieldset:empty { display: none; }
+.attendance-form-message[data-success=true] { background: #e0f7ed; color: #075437; }
+.attendance-form-message[data-success=false] { background: #fff0f1; color: #8d1632; }
+.attendance-overview { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 24px 0; }
+.attendance-overview > div { display: grid; gap: 6px; padding: 18px; border: 1px solid #d9e0f0; border-radius: 16px; background: #fff; }
+.attendance-overview strong { color: #5623ae; font-size: 2rem; }
+.attendance-overview span { font-size: .9rem; }
+.attendance-step-nav { display: flex; flex-wrap: wrap; gap: 10px; }
+.attendance-step-nav a { padding: 12px 16px; background: #eae2fa; border-radius: 12px; text-decoration: none; min-height: 44px; }
+.attendance-step-nav a:hover { background: #ded1f4; }
+.attendance-admin-section { scroll-margin-top: 20px; }
+.attendance-filters { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.attendance-filters label { flex: 1 1 180px; min-width: 0; display: grid; gap: 6px; font-weight: 700; }
+.attendance-muted { color: #4a5672; font-size: .9rem; font-weight: 400; }
+.attendance-operator-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 14px; }
+.attendance-operator-card { padding: 18px; border: 1px solid #d9e0f0; border-radius: 14px; min-width: 0; }
+.attendance-operator-card p { margin: 8px 0; }
+.attendance-card-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.attendance-card-heading strong { flex: 1 1 150px; font-size: 1rem; line-height: 1.5; }
+.attendance-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; background: #edf0f6; color: #35415d; font-size: .78rem; font-weight: 750; }
+.attendance-badge[data-tone=success] { background: #e0f7ed; color: #075437; }
+.attendance-badge[data-tone=test], .attendance-notice { background: #fff4ce; color: #684000; }
+.attendance-notice { padding: 14px; border-radius: 12px; }
+.attendance-operator-email, .attendance-operator-card, .attendance-admin-card { overflow-wrap: anywhere; }
+.attendance-operator-email { font-size: .9rem; }
+.attendance-page summary { cursor: pointer; }
+.attendance-page summary:focus-visible { outline: 3px solid #168779; outline-offset: 3px; border-radius: 6px; }
+.attendance-assigned-details summary, .attendance-program-setup summary { padding: 12px 0; font-weight: 700; min-height: 44px; }
+.attendance-assigned-details ul { padding-left: 20px; font-size: .88rem; line-height: 1.6; }
+.attendance-admin-list { align-items: start; }
+.attendance-session-card > summary { list-style: none; }
+.attendance-session-card > summary::-webkit-details-marker { display: none; }
+.attendance-summary-action { display: inline-flex; align-items: center; gap: 10px; color: #5623ae; padding: 10px 0; font-weight: 750; min-height: 44px; }
+.attendance-summary-action::after { content: "+"; font-size: 1.3rem; }
+.attendance-session-card[open] .attendance-summary-action::after { content: "−"; }
+.attendance-session-card > summary p { margin: 8px 0; }
+.attendance-check { background: #f5f6fc; padding: 12px; border-radius: 10px; min-height: 48px; }
+.attendance-check small { display: block; color: #4a5672; font-size: .8rem; font-weight: 400; margin-top: 4px; }
+.attendance-simulation { margin-top: 20px; padding: 20px; font-weight: 400; border: 1px solid #e0c675; }
+.attendance-simulation h3 { margin-top: 0; }
+@media (max-width: 540px) {
+  .attendance-admin-section { padding: 16px; }
+  .attendance-overview { gap: 6px; }
+  .attendance-overview > div { padding: 12px 8px; }
+  .attendance-overview strong { font-size: 1.6rem; }
+  .attendance-overview span { font-size: .78rem; }
+  .attendance-step-nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .attendance-step-nav a { font-size: .85rem; padding: 12px; }
+}

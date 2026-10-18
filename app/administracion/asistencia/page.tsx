@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AttendanceAdminForm } from "@/components/attendance-admin-form";
+import { AttendanceOperatorList } from "@/components/attendance-operator-list";
+import { AttendanceSessionList } from "@/components/attendance-session-list";
+import { operatorCanScan } from "@/lib/attendance-operator-list";
 import { attendanceReport, isAttendanceAdmin, listAttendanceOperators, listAttendanceSessions, simulationEnabled } from "@/lib/attendance";
 import "@/app/registro-asistencia/style.css";
 
@@ -17,43 +20,40 @@ export default async function AttendanceAdminPage({ searchParams }: { searchPara
   const [sessions, operators, records] = await Promise.all([
     listAttendanceSessions(), listAttendanceOperators(), attendanceReport(selected),
   ]);
-  const enabled = operators.filter((o) => o.active && o.role === "Staff" && o.status === "Confirmado");
+  const enabled = operators.filter(operatorCanScan);
+  const unassigned = sessions.filter((s) => s.active && !enabled.some((o) => s.operators?.includes(o.email))).length;
   return <main className="attendance-page"><div className="attendance-container attendance-admin-container">
     <header className="attendance-header"><Link href="/mi-cuenta">← Mi cuenta</Link><Link href="/registro-asistencia">Abrir lector</Link></header>
     <p className="attendance-eyebrow">Coordinación · Staff de registro</p><h1>Control de asistencia</h1>
-    <p>Habilita a tus operadores y asigna las sesiones. Pueden trabajar varios lectores en una misma sesión.</p>
-    <section className="attendance-admin-section"><h2>1. Staff de registro</h2>
-      <p>Solo cuentas con registro confirmado y clasificación Staff. La cuenta normal nunca ve el acceso al lector.</p>
-      <AttendanceAdminForm operation="operator" label="Guardar acceso"><label>Correo institucional<input type="email" name="email" required maxLength={200} /></label>
-        <label>Acceso<select name="active"><option value="true">Habilitar lector</option><option value="false">Desactivar lector</option></select></label></AttendanceAdminForm>
-      <ul>{operators.map((o) => <li key={String(o.email)}>{String(o.email)} · {o.active && o.role === "Staff" && o.status === "Confirmado" ? "Activo" : "Sin acceso"}</li>)}</ul>
+    <p>Elige al staff, prepara las sesiones y asigna quién registra cada actividad.</p>
+    <div className="attendance-overview" aria-label="Resumen de coordinación">
+      <div><strong>{enabled.length}</strong><span>Operadores habilitados</span></div>
+      <div><strong>{sessions.filter((s) => s.active).length}</strong><span>Sesiones activas</span></div>
+      <div><strong>{unassigned}</strong><span>Sesiones sin operador</span></div>
+    </div>
+    <nav className="attendance-step-nav" aria-label="Pasos de coordinación"><a href="#operadores">1 · Elegir staff</a><a href="#preparar">2 · Preparar sesiones</a><a href="#asignar">3 · Asignar</a><a href="#registros">4 · Ver asistentes</a></nav>
+    <section id="operadores" className="attendance-admin-section"><h2>1. Elige quién puede registrar</h2>
+      <p>Busca a la persona y pulsa <strong>Habilitar lector</strong>. Después asígnale sus sesiones en el paso 3.</p>
+      <AttendanceOperatorList operators={operators} sessions={sessions} />
     </section>
-    <section className="attendance-admin-section"><h2>2. Programa y sesiones</h2>
-      <p>Actualiza después de cambiar horarios en Sheets. Cada día del taller tiene su propia sesión y conserva las lecturas existentes.</p>
-      <AttendanceAdminForm operation="sync" label="Actualizar sesiones del programa" />
+    <section id="preparar" className="attendance-admin-section"><h2>2. Prepara las sesiones</h2>
+      <details className="attendance-program-setup"><summary>Importar o actualizar el programa real</summary>
+        <p>Lee los horarios de Sheets y conserva las lecturas existentes. Cada día del taller tiene su propia sesión. Para probar, usa las simulaciones de abajo.</p>
+        <AttendanceAdminForm operation="sync" label="Actualizar sesiones del programa" />
+      </details>
       {simulationEnabled() && <div className="attendance-simulation"><h3>Pruebas internas</h3>
-        <p>Crea tres conferencias (A y B simultáneas), un taller y un concurso. Solo aparecen aquí y en los lectores asignados.</p>
+        <p>Solo para pruebas: tres conferencias (A y B simultáneas), un taller y un concurso. No aparecen en el programa público.</p>
         <AttendanceAdminForm operation="simulation" label="Crear las 5 simulaciones de hoy" />
+        <h4>Autoriza al participante de prueba</h4><p>Para registrar su entrada al taller y al concurso de simulación, agrega su ID. Las conferencias no necesitan este paso.</p>
         <AttendanceAdminForm operation="simulation-roster" label="Guardar inscripción de simulación">
           <label>ID de la cuenta participante<input name="participantId" required placeholder="EQ26-XXXXXXXXXX" /></label>
           <label>Inscripción de prueba<select name="active"><option value="true">Autorizar taller y concurso de simulación</option><option value="false">Retirar autorización de simulación</option></select></label>
         </AttendanceAdminForm>
       </div>}
     </section>
-    <section className="attendance-admin-section"><h2>3. Asignar sesiones</h2>
-      {!enabled.length && <p>Habilita primero al menos un integrante de staff de registro.</p>}
-      <div className="attendance-admin-list">{sessions.map((s) => <article key={s.id} className="attendance-admin-card">
-        <span>{s.isSimulation ? "SIMULACIÓN · " : ""}{s.type}{!s.active ? " · Inactiva" : ""}</span><h3>{s.title}</h3>
-        <p>{format(s.startsAt)} – {format(s.endsAt)}<br />{s.venue}</p>
-        <p><strong>{s.entries} entradas</strong>{s.type === "Conferencia" && <> · <strong>{s.exits} salidas</strong></>}</p>
-        {s.active && <AttendanceAdminForm operation="assign" label="Guardar asignación">
-          <input type="hidden" name="sessionId" value={s.id} />
-          {enabled.map((o) => <label className="attendance-check" key={String(o.email)}>
-            <input type="checkbox" name="operators" value={String(o.email)} defaultChecked={s.operators?.includes(String(o.email))} />{String(o.name ?? o.email)} ({String(o.email)})
-          </label>)}
-        </AttendanceAdminForm>}
-        <Link href={`/administracion/asistencia?sesion=${encodeURIComponent(s.id)}#registros`}>Ver asistentes →</Link>
-      </article>)}</div>
+    <section id="asignar" className="attendance-admin-section"><h2>3. Asigna operadores a cada sesión</h2>
+      <p>Filtra por día, abre una actividad, marca a sus operadores y guarda. El staff verá únicamente las sesiones asignadas del día actual.</p>
+      <AttendanceSessionList sessions={sessions} operators={operators} />
     </section>
     <section id="registros" className="attendance-admin-section"><h2>4. Asistentes</h2>
       <form method="get" className="attendance-admin-form"><label>Sesión<select name="sesion" defaultValue={selected ?? ""}>
