@@ -1,5 +1,5 @@
 import type { ProgramItem } from "../config/content";
-import { buildAgenda, formatMinutes, localEventTime, parseTimeRanges } from "./program-agenda.ts";
+import { formatMinutes, localEventTime, parseTimeRanges } from "./program-agenda.ts";
 
 export type AttendanceSession = {
   id: string;
@@ -30,15 +30,39 @@ export function sessionWindow(session: AttendanceSession, now = new Date()) {
 }
 
 export function buildAttendanceSessions(items: ProgramItem[]): AttendanceSession[] {
-  return buildAgenda(items).filter((o) => o.date && !o.notice).flatMap((o) =>
-    parseTimeRanges(o.time).map((range, index) => ({
-      id: `activity-${o.item.id}-${o.date}-${index}`,
-      activityId: o.item.id, title: o.item.title, type: o.item.type, venue: o.item.place,
-      startsAt: `${o.date}T${formatMinutes(range.start)}:00-06:00`,
-      endsAt: `${o.date}T${formatMinutes(range.end)}:00-06:00`,
-      isSimulation: false, active: true,
-    })),
-  );
+  return inspectAttendanceSchedule(items).sessions;
+}
+
+export function inspectAttendanceSchedule(items: ProgramItem[]) {
+  const sessions: AttendanceSession[] = [];
+  const skipped: string[] = [];
+  for (const item of items) {
+    // Las fechas explícitas son la fuente de verdad. Incluye también talleres previos al día inaugural.
+    const dates = [...new Set(item.date?.match(/\b\d{4}-\d{2}-\d{2}\b/g) ?? [])];
+    const timeParts = item.time.split("|").map((value) => value.trim()).filter(Boolean);
+    if (!dates.length || dates.some((date) => !Number.isFinite(Date.parse(`${date}T12:00:00-06:00`))
+      || new Date(`${date}T12:00:00-06:00`).toISOString().slice(0, 10) !== date)
+      || (dates.length > 1 && timeParts.length !== 1 && timeParts.length !== dates.length)) {
+      skipped.push(item.title); continue;
+    }
+    const daily = dates.map((date, i) => ({ date, ranges: parseTimeRanges(
+      dates.length === 1 ? item.time : timeParts.length === 1 ? timeParts[0] : timeParts[i],
+    ) }));
+    if (daily.some((d) => !d.ranges.length)) { skipped.push(item.title); continue; }
+    for (const { date, ranges } of daily) {
+      // Taller/concurso: una sola asistencia por día, incluso si tiene dos bloques horarios ese día.
+      const periods = item.type === "Conferencia" ? ranges
+        : [{ start: Math.min(...ranges.map((r) => r.start)), end: Math.max(...ranges.map((r) => r.end)) }];
+      periods.forEach((range, index) => sessions.push({
+        id: `activity-${item.id}-${date}-${index}`,
+        activityId: item.id, title: item.title, type: item.type, venue: item.place,
+        startsAt: `${date}T${formatMinutes(range.start)}:00-06:00`,
+        endsAt: `${date}T${formatMinutes(range.end)}:00-06:00`,
+        isSimulation: false, active: true,
+      }));
+    }
+  }
+  return { sessions, skipped };
 }
 
 export function validScanReference(reference: string, source: string) {
@@ -49,6 +73,16 @@ export function validScanReference(reference: string, source: string) {
 
 export function normalizedEmailList(value: string | undefined) {
   return new Set((value ?? "").split(",").map((v) => v.trim().toLowerCase()).filter(Boolean));
+}
+
+export function isAuthorizedCoordinator(email: string | null | undefined, configured: string | undefined) {
+  const allowed = new Set(["cdquim@cucei.udg.mx", "jorge.lopezarce@academicos.udg.mx"]);
+  const normalized = email?.trim().toLowerCase();
+  return Boolean(normalized && allowed.has(normalized) && normalizedEmailList(configured).has(normalized));
+}
+
+export function areSimulationsEnabled(flag: string | undefined, environment: string | undefined) {
+  return flag === "true" && environment !== "production";
 }
 
 export function attendanceCsvCell(value: unknown) {

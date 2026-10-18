@@ -46,7 +46,9 @@ export async function manageAttendance(_previous: AttendanceAdminState, form: Fo
       ]);
       message = "Asignaciones guardadas. El operador debe volver a abrir su panel.";
     } else if (operation === "sync") {
-      message = `${await syncAttendanceSessions(actor)} sesiones actualizadas desde el programa.`;
+      const result = await syncAttendanceSessions(actor);
+      message = `${result.count} sesiones actualizadas desde el programa.${result.skipped.length
+        ? ` Sin fecha/horario válido (revisar en Sheets): ${result.skipped.join("; ")}.` : ""}`;
     } else if (operation === "simulation") {
       if (!simulationEnabled()) throw new Error("Las simulaciones solo están habilitadas en el entorno de pruebas.");
       const sessions = buildSimulationSessions();

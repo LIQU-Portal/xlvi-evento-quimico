@@ -80,7 +80,7 @@ BEGIN
   END IF;
   PERFORM 1 FROM attendance_operators o JOIN participants p ON lower(p.email) = o.email
     WHERE o.email = lower(p_operator_email) AND o.active AND p.role = 'Staff' AND p.status = 'Confirmado'
-    FOR SHARE OF o, p;
+    FOR SHARE OF o;
   IF NOT FOUND THEN
     RETURN QUERY SELECT 'forbidden'::TEXT, NULL::TEXT, NULL::TEXT, NULL::TIMESTAMPTZ; RETURN;
   END IF;

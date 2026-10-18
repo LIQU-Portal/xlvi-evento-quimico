@@ -62,7 +62,7 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
     return () => clearInterval(timer);
   }, [selected, stopCamera]);
 
-  const submit = useCallback(async (value: string, source: "qr" | "manual" = "qr") => {
+  const submit = useCallback(async (value: string, source: "qr" | "manual" = "qr", fromCamera = false) => {
     if (!selected || inFlight.current || !value.trim()) return;
     const key = `${selected.id}:${direction}:${value}`;
     const time = Date.now();
@@ -82,10 +82,13 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
       const next = data as AttendanceResult;
       setResult(next);
       if (next.outcome === "recorded") {
-        setCounts((previous) => ({ ...previous, [selected.id]: {
-          entries: previous[selected.id].entries + (direction === "entry" ? 1 : 0),
-          exits: previous[selected.id].exits + (direction === "exit" ? 1 : 0),
-        } }));
+        setCounts((previous) => {
+          const count = previous[selected.id] ?? { entries: selected.entries ?? 0, exits: selected.exits ?? 0 };
+          return { ...previous, [selected.id]: {
+            entries: count.entries + (direction === "entry" ? 1 : 0),
+            exits: count.exits + (direction === "exit" ? 1 : 0),
+          } };
+        });
         navigator.vibrate?.(100);
       } else if (next.outcome === "duplicate") navigator.vibrate?.([40, 40, 40]);
     } catch (error) {
@@ -95,7 +98,8 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
       setBusy(false);
       setReference("");
       inFlight.current = false;
-      if (source === "qr") input.current?.focus();
+      // Mantener el foco del lector físico sin abrir el teclado durante el escaneo con cámara.
+      if (source === "qr" && !fromCamera) setTimeout(() => input.current?.focus(), 0);
     }
   }, [selected, direction, reason]);
 
@@ -117,7 +121,7 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
       const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 250, delayBetweenScanSuccess: 1000 });
       const handle = await reader.decodeFromConstraints(
         { audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } } },
-        video.current!, (decoded) => { if (decoded) void submitRef.current(decoded.getText()); },
+        video.current!, (decoded) => { if (decoded) void submitRef.current(decoded.getText(), "qr", true); },
       );
       if (generation !== cameraGeneration.current) { handle.stop(); return; }
       controls.current = handle;
@@ -135,6 +139,7 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
     return <section className="attendance-picker">
       <h1>¿Dónde vas a registrar?</h1>
       <p>Elige tu sesión asignada.</p>
+      <button className="attendance-back" onClick={() => window.location.reload()}>Actualizar sesiones</button>
       {!todays.length && <div className="attendance-empty">No tienes sesiones asignadas para hoy. Contacta a tu coordinador.</div>}
       {todays.map((s) => <button className="attendance-session-choice" key={s.id}
         onClick={() => { setSelectedId(s.id); setDirection("entry"); setResult(null); setReference(""); setManual(false); }}>
@@ -147,7 +152,7 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
   }
 
   const allowed = sessionWindow(selected, now);
-  const counter = counts[selected.id];
+  const counter = counts[selected.id] ?? { entries: selected.entries ?? 0, exits: selected.exits ?? 0 };
   const resultClass = result?.outcome === "recorded" ? "success" : result?.outcome === "duplicate" ? "duplicate" : "error";
   return <section className="attendance-scan">
     <button className="attendance-back" disabled={busy} onClick={() => { stopCamera(); setSelectedId(null); setResult(null); }}><ChevronLeft size={18} /> Cambiar sesión</button>

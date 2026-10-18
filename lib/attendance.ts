@@ -2,18 +2,15 @@ import "server-only";
 
 import { getSql } from "@/lib/db";
 import { getProgramFromSheets } from "@/lib/sheets";
-import { attendanceMessages, buildAttendanceSessions, normalizedEmailList, validScanReference,
+import { attendanceMessages, inspectAttendanceSchedule, isAuthorizedCoordinator, areSimulationsEnabled, validScanReference,
   type AttendanceResult, type AttendanceSession } from "@/lib/attendance-rules";
 
 export function isAttendanceAdmin(email: string | null | undefined) {
-  const allowed = new Set(["cdquim@cucei.udg.mx", "jorge.lopezarce@academicos.udg.mx"]);
-  const normalized = email?.trim().toLowerCase();
-  return Boolean(normalized && allowed.has(normalized)
-    && normalizedEmailList(process.env.ATTENDANCE_ADMIN_EMAILS).has(normalized));
+  return isAuthorizedCoordinator(email, process.env.ATTENDANCE_ADMIN_EMAILS);
 }
 
 export function simulationEnabled() {
-  return process.env.ATTENDANCE_SIMULATION_ENABLED === "true" && process.env.VERCEL_ENV !== "production";
+  return areSimulationsEnabled(process.env.ATTENDANCE_SIMULATION_ENABLED, process.env.VERCEL_ENV);
 }
 
 export async function attendanceAccess(email: string | null | undefined) {
@@ -80,7 +77,7 @@ export async function scanAttendance(input: {
 export async function syncAttendanceSessions(actor: string) {
   // No usar contenido de respaldo para una operación de control de asistencia.
   const program = await getProgramFromSheets({ fresh: true, allowFallback: false });
-  const sessions = buildAttendanceSessions(program);
+  const { sessions, skipped } = inspectAttendanceSchedule(program);
   if (!sessions.length) throw new Error("No hay sesiones con fecha y horario válidos. Revisa la hoja.");
   const sql = getSql();
   await sql.transaction([
@@ -94,7 +91,7 @@ export async function syncAttendanceSessions(actor: string) {
     sql.query("INSERT INTO attendance_audit (actor_email, action, detail) VALUES ($1,'sync_sessions',$2::jsonb)",
       [actor, JSON.stringify({ count: sessions.length })]),
   ]);
-  return sessions.length;
+  return { count: sessions.length, skipped };
 }
 
 export async function attendanceReport(sessionId?: string) {
@@ -104,6 +101,8 @@ export async function attendanceReport(sessionId?: string) {
       max(e.recorded_at) FILTER (WHERE e.direction = 'exit') AS exited_at,
       max(e.operator_email) FILTER (WHERE e.direction = 'entry') AS entry_operator,
       max(e.operator_email) FILTER (WHERE e.direction = 'exit') AS exit_operator,
+      max(e.source) FILTER (WHERE e.direction = 'entry') AS entry_source,
+      max(e.source) FILTER (WHERE e.direction = 'exit') AS exit_source,
       max(e.manual_reason) FILTER (WHERE e.direction = 'entry') AS entry_reason,
       max(e.manual_reason) FILTER (WHERE e.direction = 'exit') AS exit_reason
     FROM attendance_events e JOIN attendance_sessions s ON s.id = e.session_id

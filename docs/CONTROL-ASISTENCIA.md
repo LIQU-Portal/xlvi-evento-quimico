@@ -7,6 +7,9 @@ los participantes y los QR existentes. No requiere emitir nuevos QR ni modificar
 
 - Conferencias: una entrada y una salida por participante y sesión. La salida exige entrada previa.
 - Talleres y concursos: una entrada por participante y sesión/día. Exige inscripción confirmada (cada miembro del equipo presenta su QR).
+- Las fechas explícitas de Sheets determinan los días; incluye talleres previos a la inauguración.
+  Si un taller tiene dos bloques horarios en el mismo día, conserva una sola entrada diaria.
+  Los horarios ambiguos o pendientes se omiten y coordinación recibe el listado para corregirlos.
 - Actividades generales del programa: una entrada, sin exigir inscripción a taller/concurso.
 - Ventana para ambos tipos de lectura: todo el día de la sesión (00:00 a 23:59:59),
   usando `America/Mexico_City` y el reloj del servidor.

@@ -8,7 +8,7 @@ export function buildSimulationSessions(now = new Date()): AttendanceSession[] {
   const templates = [
     { key: "conference-a", type: "Conferencia", title: "Conferencia A · Aula azul", offset: 0 },
     { key: "conference-b", type: "Conferencia", title: "Conferencia B · Aula morada (simultánea)", offset: 0 },
-    { key: "conference-c", type: "Conferencia", title: "Conferencia C · Sesión siguiente", offset: 20 },
+    { key: "conference-c", type: "Conferencia", title: "Conferencia C · Sesión siguiente", offset: 60 },
     { key: "workshop", type: "Taller", title: "Taller de simulación", offset: 0 },
     { key: "contest", type: "Concurso", title: "Concurso de simulación", offset: 0 },
   ] as const;

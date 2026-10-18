@@ -8,7 +8,7 @@
 .attendance-eyebrow { color: #5623ae; font-size: .78rem; text-transform: uppercase; font-weight: 800; letter-spacing: .1em; }
 .attendance-admin-link { display: inline-block; padding: 12px 0; }
 .attendance-session-choice { display: grid; gap: 8px; text-align: left; width: 100%; padding: 20px; background: #fff; border: 1px solid #d5c7f1; border-left: 5px solid #6c2bd9; border-radius: 16px; margin: 14px 0; color: #0d1b3d; }
-.attendance-session-choice strong { font-size: 1.12rem; }
+.attendance-session-choice strong { font-size: 1.12rem; overflow-wrap: anywhere; }
 .attendance-session-choice span { font-size: .9rem; }
 .attendance-session-choice em { color: #5623ae; font-style: normal; font-weight: 800; }
 .attendance-back { display: inline-flex; align-items: center; gap: 5px; padding: 12px 0; color: #5623ae; background: transparent; border: 0; font-weight: 700; min-height: 44px; }
@@ -47,8 +47,8 @@
 .attendance-admin-section h2 { font-size: 1.3rem; margin: 0 0 12px; }
 .attendance-admin-form { display: grid; gap: 12px; margin: 16px 0; }
 .attendance-admin-form label { display: grid; gap: 6px; font-weight: 650; }
-.attendance-admin-form .attendance-check { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-.attendance-check input { width: 22px; min-height: 22px; }
+.attendance-admin-form .attendance-check { display: flex; flex-direction: row; align-items: center; gap: 8px; overflow-wrap: anywhere; }
+.attendance-check input { width: 22px; min-height: 22px; flex: none; }
 .attendance-admin-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 16px; }
 .attendance-admin-card { border: 1px solid #d9e0f0; padding: 16px; border-radius: 14px; }
 .attendance-admin-card h3 { font-size: 1.1rem; margin: 8px 0; }
