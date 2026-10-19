@@ -15,6 +15,9 @@
     "test:team-validation": "node scripts/test-team-registration.mjs",
     "db:migrate-attendance": "node --env-file=.env.local scripts/migrate-attendance.mjs",
     "test:attendance": "node scripts/test-attendance.mjs",
+    "test:attendance-neon": "node --env-file=.env.local scripts/test-attendance-neon.mjs --run-isolated-neon",
+    "check:attendance-release": "node scripts/check-attendance-release.mjs",
+    "test:attendance-release": "node scripts/test-attendance-release.mjs",
     "test:speakers": "node scripts/test-speaker-profiles.mjs"
   },
   "dependencies": {

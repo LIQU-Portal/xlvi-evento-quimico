@@ -130,6 +130,10 @@ Ejecutar además `pnpm lint`, `pnpm build` y `git diff --check`.
 
 ## Paso a producción
 
+Procedimiento completo y bloqueos de aprobación: [PUBLICACION-ASISTENCIA.md](PUBLICACION-ASISTENCIA.md).
+Incluye las cuatro pruebas manuales pendientes, respaldo, revisión de destino, migración explícita,
+variables de producción, asignación del staff y contingencia. Preparar la rama no publica el módulo.
+
 Tras aprobar Preview, aplicar `database/attendance.sql` explícitamente al destino de producción,
 configurar los dos coordinadores y dejar `ATTENDANCE_SIMULATION_ENABLED=false`.
 Sincronizar las sesiones reales desde el panel, revisar sus fechas/horarios y asignar los ocho operadores.
