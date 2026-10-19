@@ -41,5 +41,5 @@ export function conferenceMinutes(start: string, end: string, visits: { enteredA
   }
   milliseconds += b - a;
   const attendedMinutes = Math.floor(milliseconds / 600) / 100;
-  return { attendedMinutes, creditedMinutes: milliseconds > (to - from) / 2 ? attendedMinutes : 0 };
+  return { attendedMinutes, creditedMinutes: attendedMinutes };
 }

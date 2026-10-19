@@ -8,8 +8,8 @@ No es una autorización de merge ni de despliegue de producción.
 Cada día/auditorio tiene un lector compartido por las conferencias de esa sede. Se escanea al
 entrar y al salir, no entre conferencias. Puede haber reingresos; cada estancia debe cerrarse.
 Por conferencia se unen los intervalos cerrados, se recortan a su horario y se excluyen huecos y
-descansos. Solo si la cobertura supera estrictamente la mitad de la conferencia se reconocen
-los minutos efectivos: 31/60 reconoce 31; 60/60 reconoce 60; 30/60 reconoce cero. Una entrada sin
+descansos. Se reconocen todos los minutos efectivos, sin porcentaje mínimo: 31/60 reconoce 31;
+60/60 reconoce 60; 30/60 reconoce 30; 1/60 reconoce 1. Una entrada sin
 salida aporta cero por ese intervalo, pero no invalida otras estancias cerradas correctamente.
 La comparación usa segundos exactos. Los minutos se truncan a dos decimales, sin redondear arriba.
 
@@ -92,7 +92,7 @@ Solo con la base aislada ya verificada:
 node --env-file=.env.local scripts/test-attendance-neon.mjs --run-isolated-neon --workers=8
 ```
 
-La prueba de auditorios en PGlite ejecuta SQL real y cubre agrupación, 50% exacto, minutos efectivos,
+La prueba de auditorios en PGlite ejecuta SQL real y cubre agrupación, ausencia de porcentaje mínimo, minutos efectivos,
 entradas abiertas, reingresos, huecos, cruce entre conferencias, intervalos traslapados sin doble
 cómputo, manual/QR inválidos, permisos, revocación, UUID reutilizado con otra persona, inmutabilidad
 del programa con lecturas y las mismas consultas de ambos reportes. También conserva las pruebas

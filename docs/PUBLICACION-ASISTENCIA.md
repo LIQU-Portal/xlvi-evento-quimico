@@ -4,7 +4,7 @@ Estado: preparado para revisión, NO aprobado para producción. Este documento n
 Rama: `feature/control-asistencia-qr`. Main y la base estable no se modifican al preparar esta entrega.
 
 **Actualización: estancias de auditorio.** La regla de conferencias cambió: varias entradas/salidas
-por auditorio/día, minutos reales y más del 50% por conferencia, solo con intervalos cerrados.
+por auditorio/día y todos los minutos reales por conferencia, sin mínimo y solo con intervalos cerrados.
 La evidencia alternativa de las cuatro pruebas y los límites del estrés están en
 [VALIDACION-AUDITORIOS.md](VALIDACION-AUDITORIOS.md). Las casillas siguientes siguen reservadas a
 la aprobación humana; no confundir las pruebas automatizadas con un ensayo físico del escáner.

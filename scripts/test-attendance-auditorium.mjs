@@ -73,7 +73,9 @@ try {
   const cases = [
     { visits: [["09:00", "09:31"]], expected: [31, 31] },
     { visits: [["09:00", "10:00"]], expected: [60, 60] },
-    { visits: [["09:00", "09:30"]], expected: [30, 0] },
+    { visits: [["09:00", "09:30"]], expected: [30, 30] },
+    { visits: [["09:00", "09:01"]], expected: [1, 1] },
+    { visits: [["09:00", "09:10"]], expected: [10, 10] },
     { visits: [["09:00", null]], expected: [0, 0] },
     { visits: [["09:00", "09:20"], ["09:30", "09:45"], ["09:50", null]], expected: [35, 35] },
     { visits: [["08:00", "09:31"]], expected: [31, 31] },
@@ -125,5 +127,5 @@ try {
   await context.saveAttendanceSessions(real,"test",false);
   await assert.rejects(context.saveAttendanceSessions([{...real[0],endsAt:at("09:59")},real[1]],"test",false));
   assert.equal(new Date((await db.query("SELECT ends_at FROM attendance_sessions WHERE id='real-a'")).rows[0].ends_at).toISOString(),new Date(at("10:00")).toISOString());
-  console.log("OK: auditorium grouping, strict >50%, actual minutes, no exit=0, re-entries/gaps, clipping per conference, SQL reports, request replay, revocation, audit detail and immutable schedules. In-memory only.");
+  console.log("OK: auditorium grouping, no minimum percentage, actual minutes, no exit=0, re-entries/gaps, clipping per conference, SQL reports, request replay, revocation, audit detail and immutable schedules. In-memory only.");
 } finally { await db.close(); }

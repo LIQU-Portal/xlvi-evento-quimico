@@ -61,7 +61,7 @@ export default async function AttendanceAdminPage({ searchParams }: { searchPara
       </select></label><button type="submit" className="attendance-secondary">Ver registros</button></form>
       <Link href={`/administracion/asistencia/exportar${selected ? `?sesion=${encodeURIComponent(selected)}` : ""}`}>Descargar CSV</Link>
       <p><Link href={`/administracion/asistencia/exportar?detalle=estancias${selected ? `&sesion=${encodeURIComponent(selected)}` : ""}`}>Descargar entradas y salidas de auditorio</Link></p>
-      <p>{records.length} registros por actividad. En conferencias solo suman intervalos cerrados y se reconocen minutos reales si superan el 50%. No se emiten constancias todavía.</p>
+      <p>{records.length} registros por actividad. En conferencias se reconocen todos los minutos reales con entrada y salida, sin porcentaje mínimo. Sin salida, esa estancia no suma. No se emiten constancias todavía.</p>
       <div className="attendance-table-wrapper"><table><thead><tr><th>Actividad</th><th>Participante</th><th>ID</th><th>Primera entrada</th><th>Última salida</th><th>Minutos presentes / reconocidos</th><th>Entradas sin salida</th></tr></thead>
         <tbody>{records.map((r) => <tr key={`${r.session_id}:${r.participant_id}:${r.evidence_type}`}><td>{String(r.title)}</td><td>{String(r.name)}</td><td>{String(r.participant_id)}</td><td>{format(r.entered_at)}</td><td>{format(r.exited_at)}</td><td>{r.evidence_type === "auditorium_intervals" ? `${r.attended_minutes} / ${r.credited_minutes}` : "Sin cálculo: registro individual"}</td><td>{String(r.open_intervals ?? "—")}</td></tr>)}</tbody></table></div>
     </section>

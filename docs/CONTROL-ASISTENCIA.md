@@ -7,8 +7,8 @@ los participantes y los QR existentes. No requiere emitir nuevos QR ni modificar
 
 - Conferencias: registro continuo por auditorio y día, con varias entradas y salidas. No se escanea
   al cambiar de conferencia dentro del mismo auditorio. Una estancia sin salida no aporta minutos.
-  Para cada conferencia se unen los intervalos cerrados y se recortan a su horario; solo si cubren
-  estrictamente más del 50% se reconocen esos minutos reales, nunca la duración completa por defecto.
+  Para cada conferencia se unen los intervalos cerrados y se recortan a su horario; se reconocen
+  todos esos minutos reales, sin porcentaje mínimo y nunca la duración completa por defecto.
   El tiempo fuera, descansos y solapes no se cuentan dos veces. Cálculo en segundos, salida en minutos
   truncados a dos decimales (sin redondear hacia arriba). Las constancias no se emiten en esta entrega.
 - Talleres y concursos: una entrada por participante y sesión/día. Exige inscripción confirmada (cada miembro del equipo presenta su QR).

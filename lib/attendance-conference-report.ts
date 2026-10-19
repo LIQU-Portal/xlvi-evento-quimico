@@ -1,4 +1,4 @@
-// Closed visits only; exact seconds determine >50%, displayed minutes truncate to 2 decimals.
+// All closed attendance counts, with no minimum percentage. Truncate to 2 decimals.
 export const conferenceReportQuery = `
 WITH coverage AS (
   SELECT s.id AS session_id,s.title,s.type,s.starts_at,s.ends_at,s.is_simulation,
@@ -16,7 +16,7 @@ WITH coverage AS (
   SELECT coverage.*,coalesce((SELECT sum(extract(epoch FROM upper(r)-lower(r))) FROM unnest(ranges) AS r),0) AS seconds FROM coverage
 )
 SELECT *,trunc(seconds/60,2)::float8 AS attended_minutes,
-  CASE WHEN seconds>extract(epoch FROM ends_at-starts_at)/2 THEN trunc(seconds/60,2)::float8 ELSE 0 END AS credited_minutes,
+  trunc(seconds/60,2)::float8 AS credited_minutes,
   'auditorium_intervals'::text AS evidence_type
 FROM measured ORDER BY starts_at,name`;
 
