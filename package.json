@@ -18,6 +18,7 @@
     "test:attendance-neon": "node --env-file=.env.local scripts/test-attendance-neon.mjs --run-isolated-neon",
     "check:attendance-release": "node scripts/check-attendance-release.mjs",
     "test:attendance-release": "node scripts/test-attendance-release.mjs",
+    "test:staff-function": "node scripts/test-staff-function.mjs",
     "test:speakers": "node scripts/test-speaker-profiles.mjs"
   },
   "dependencies": {

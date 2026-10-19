@@ -40,15 +40,16 @@ async function saveRegistration(registration) {
   await sql.query(
     `INSERT INTO participants (
        id, email, name, account_type, role, staff_type, institutional_code, affiliation,
-       status, qr_token, confirmation_email_sent_at, created_at, updated_at
+       status, qr_token, confirmation_email_sent_at, created_at, updated_at, staff_function
      ) VALUES (
        $1, LOWER($2), $3, $4, $5, NULLIF($6, ''), $7, $8, $9, $10,
-       NULLIF($11, '')::TIMESTAMPTZ, $12::TIMESTAMPTZ, NOW()
+       NULLIF($11, '')::TIMESTAMPTZ, $12::TIMESTAMPTZ, NOW(), NULLIF($13, '')
      )
      ON CONFLICT (email) DO UPDATE SET
        id = EXCLUDED.id, name = EXCLUDED.name,
        account_type = EXCLUDED.account_type, role = EXCLUDED.role,
        staff_type = EXCLUDED.staff_type,
+       staff_function = EXCLUDED.staff_function,
        institutional_code = EXCLUDED.institutional_code,
        affiliation = EXCLUDED.affiliation, status = EXCLUDED.status,
        qr_token = COALESCE(EXCLUDED.qr_token, participants.qr_token),
@@ -76,6 +77,8 @@ async function saveRegistration(registration) {
         ? isoDate(registration.confirmationEmailSentAt, "")
         : "",
       isoDate(registration.createdAt),
+      registration.role === "Staff" && ["Apoyo operativo", "Registro de asistencia"].includes(registration.staffFunction)
+        ? registration.staffFunction : "",
     ],
   );
 }

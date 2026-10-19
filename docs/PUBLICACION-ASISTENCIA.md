@@ -103,6 +103,16 @@ Si la huella no coincide, se detiene sin conectarse: no cambiar la huella solo p
 
 6. Solo con respaldo y destino aprobados, aplicar la migración de esta rama:
 
+   Si se publica también la clasificación `staffFunction`, primero actualizar Code.gs según
+   `google-apps-script/README.md` y aplicar su migración adicional con la misma conexión verificada:
+
+```powershell
+node --env-file=.env.attendance-production.local scripts/migrate-staff-function.mjs --expected-fingerprint=187d4e41ad84
+```
+
+   Es una columna opcional para constancias; no concede permisos. Requiere migración antes
+   de publicar esta versión de la web. No ejecutar la migración general heredada para añadirla.
+
 ```powershell
 node --env-file=.env.attendance-production.local scripts/migrate-attendance.mjs
 node --env-file=.env.attendance-production.local scripts/check-attendance-release.mjs --environment=production --phase=after-migration --expected-fingerprint=187d4e41ad84

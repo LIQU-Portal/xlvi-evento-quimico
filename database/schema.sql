@@ -26,6 +26,12 @@ ALTER TABLE participants
 
 -- statement-breakpoint
 
+ALTER TABLE participants
+  ADD COLUMN IF NOT EXISTS staff_function TEXT
+  CHECK (staff_function IS NULL OR staff_function IN ('Apoyo operativo', 'Registro de asistencia'));
+
+-- statement-breakpoint
+
 CREATE TABLE IF NOT EXISTS activities (
   id INTEGER PRIMARY KEY,
   type TEXT NOT NULL CHECK (type IN ('Taller', 'Concurso')),

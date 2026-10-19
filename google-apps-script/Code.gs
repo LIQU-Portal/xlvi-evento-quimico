@@ -13,8 +13,9 @@ const REGISTRATION_HEADERS = [
   "status",
   "confirmationEmailSentAt",
   "staffType",
+  "staffFunction",
 ];
-const STAFF_HEADERS = ["email", "name", "active", "staffType"];
+const STAFF_HEADERS = ["email", "name", "active", "staffType", "staffFunction"];
 const DEFAULT_EVENT_BASE_URL = "https://xlvi-evento-quimico.vercel.app";
 const CONFIRMATION_SENDER_EMAIL = "cdquim@cucei.udg.mx";
 const ALLOWED_EMAIL_DOMAINS = [
@@ -118,6 +119,7 @@ function lookup_(rawEmail) {
     registration: entry ? entry.registration : null,
     isStaff: staffInfo.isStaff,
     staffType: staffInfo.staffType,
+    staffFunction: staffInfo.staffFunction,
   };
 }
 
@@ -146,6 +148,7 @@ function lookupMany_(rawEmails) {
       institutionalCode: values[row][7], affiliation: values[row][8],
       status: values[row][9], confirmationEmailSentAt: values[row][10] || "",
       staffType: values[row][11] || "",
+      staffFunction: values[row][12] || "",
     };
     applyStaffInfo_(byEmail[email], getStaffInfo_(staff, email));
     byEmail[email].qrToken = createQrToken_(byEmail[email].id);
@@ -186,6 +189,7 @@ function listRegistrations_() {
       status: values[row][9],
       confirmationEmailSentAt: values[row][10] || "",
       staffType: values[row][11] || "",
+      staffFunction: values[row][12] || "",
     };
     applyStaffInfo_(registration, getStaffInfo_(staff, registration.email));
     registration.qrToken = createQrToken_(registration.id);
@@ -226,6 +230,7 @@ function register_(payload) {
       registration: existingEntry.registration,
       isStaff: existingEntry.registration.role === "Staff",
       staffType: existingEntry.registration.staffType,
+      staffFunction: existingEntry.registration.staffFunction,
       alreadyRegistered: true,
       confirmationEmailSent: Boolean(
         existingEntry.registration.confirmationEmailSentAt,
@@ -247,6 +252,7 @@ function register_(payload) {
     status: "Confirmado",
     confirmationEmailSentAt: "",
     staffType: staffInfo.staffType,
+    staffFunction: staffInfo.staffFunction,
   };
   registration.qrToken = createQrToken_(registration.id);
 
@@ -263,6 +269,7 @@ function register_(payload) {
     safeCellText_(registration.status),
     "",
     safeCellText_(registration.staffType),
+    safeCellText_(registration.staffFunction),
   ]);
 
   return {
@@ -270,6 +277,7 @@ function register_(payload) {
     registration: registration,
     isStaff: role === "Staff",
     staffType: registration.staffType,
+    staffFunction: registration.staffFunction,
     alreadyRegistered: false,
     confirmationEmailSent: false,
   };
@@ -292,6 +300,7 @@ function findRegistrationEntry_(sheet, email) {
         status: values[row][9],
         confirmationEmailSentAt: values[row][10] || "",
         staffType: values[row][11] || "",
+        staffFunction: values[row][12] || "",
       };
       registration.qrToken = createQrToken_(registration.id);
 
@@ -443,15 +452,26 @@ function getStaffInfo_(sheet, email) {
     const active = String(values[row][2]).trim().toLowerCase();
     const isActive = ["si", "sí", "true", "1", "activo"].includes(active);
 
-    if (!isActive) return { isStaff: false, staffType: "" };
+    if (!isActive) return { isStaff: false, staffType: "", staffFunction: "" };
 
     return {
       isStaff: true,
       staffType: normalizeStaffType_(values[row][3]),
+      staffFunction: normalizeStaffFunction_(values[row][4]),
     };
   }
 
-  return { isStaff: false, staffType: "" };
+  return { isStaff: false, staffType: "", staffFunction: "" };
+}
+
+// Classification for certificates only. Never grants access to the QR reader.
+// Blank is allowed for existing staff; never infer a scanning permission.
+function normalizeStaffFunction_(value) {
+  const normalized = String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (!normalized) return "";
+  if (normalized === "apoyo operativo") return "Apoyo operativo";
+  if (normalized === "registro de asistencia") return "Registro de asistencia";
+  throw new Error("staffFunction debe ser Apoyo operativo o Registro de asistencia (o quedar vacío).");
 }
 
 function normalizeStaffType_(value) {
@@ -469,11 +489,13 @@ function applyStaffInfo_(registration, staffInfo) {
   if (staffInfo.isStaff) {
     registration.role = "Staff";
     registration.staffType = staffInfo.staffType;
+    registration.staffFunction = staffInfo.staffFunction;
     return registration;
   }
 
   if (registration.role === "Staff") registration.role = registration.accountType;
   registration.staffType = "";
+  registration.staffFunction = "";
   return registration;
 }
 
@@ -488,6 +510,7 @@ function syncStaffClassifications() {
   const values = registrations.getDataRange().getDisplayValues();
   const roleColumn = REGISTRATION_HEADERS.indexOf("role") + 1;
   const staffTypeColumn = REGISTRATION_HEADERS.indexOf("staffType") + 1;
+  const staffFunctionColumn = REGISTRATION_HEADERS.indexOf("staffFunction") + 1;
   let updated = 0;
 
   for (let row = 1; row < values.length; row += 1) {
@@ -503,6 +526,7 @@ function syncStaffClassifications() {
     registrations
       .getRange(row + 1, staffTypeColumn)
       .setValue(staffInfo.staffType);
+    registrations.getRange(row + 1, staffFunctionColumn).setValue(staffInfo.staffFunction);
     updated += 1;
   }
 

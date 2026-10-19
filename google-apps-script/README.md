@@ -59,15 +59,48 @@ comando diariamente.
 
 En la pestaña `Staff` utiliza estas columnas:
 
-| email | name | active | staffType |
-| --- | --- | --- | --- |
-| persona@alumnos.udg.mx | Nombre de la persona | Sí | Alumno |
+| email | name | active | staffType | staffFunction |
+| --- | --- | --- | --- | --- |
+| persona@alumnos.udg.mx | Nombre de la persona | Sí | Alumno | Apoyo operativo |
 
 La columna `active` acepta `Sí`, `true`, `1` o `activo`. `staffType` acepta
 únicamente `Alumno` o `Académico`. La clasificación es explícita y no se deduce
 del dominio del correo.
 
+`staffFunction` acepta `Apoyo operativo` o `Registro de asistencia`. Puede quedar vacío para
+staff ya existente sin clasificar. No se deduce del correo ni del tipo Alumno/Académico.
+Sirve como dato para futuras constancias; no crea un rol nuevo, no calcula horas ni concede acceso al lector.
+Quien sea apoyo operativo no debe habilitarse como operador. Si ya tenía permiso, desactivarlo
+en el panel de coordinación: cambiar esta clasificación por sí solo no revoca permisos explícitos.
+
+### Incorporar la función de staff sin perder registros
+
+1. En el Apps Script de la hoja **de registros**, actualizar `Code.gs`, conservando sus propiedades
+   y secretos. Ejecutar `setupSheets`: agrega `staffFunction` al final de Staff (E) y Registros (M),
+   sin mover las columnas anteriores. No usar la hoja pública de contenido.
+2. Completar Staff!E con los valores anteriores. No cambiar `staffType`.
+3. Ejecutar `syncStaffClassifications` para guardar la clasificación de los ya registrados.
+   Conserva ID, QR, estado del registro y datos del correo enviado.
+4. Publicar una nueva versión de la implementación web existente, conservando `/exec` y el remitente
+   `cdquim@cucei.udg.mx`. No crear nuevos secretos ni cambiar la cuenta ejecutora.
+5. Antes de desplegar el código web nuevo, aplicar **solo** `database/staff-function.sql` en el
+   destino verificado. El script dedicado exige DATABASE_URL y una huella esperada, sin elegir
+   las conexiones secundarias heredadas:
+
+```powershell
+# Solo Preview/local aislado; NO es un comando de producción.
+node --env-file=.env.local scripts/migrate-staff-function.mjs --expected-fingerprint=b619c2fac063
+```
+
+Para producción, usar un archivo privado de producción y su huella verificada, con respaldo y
+autorización. Esta migración no se ejecuta durante build. No copiar datos de prueba a producción.
+6. Actualizar el espejo mediante el flujo de sincronización existente solo después de verificar
+   todas sus conexiones: ese script heredado prioriza POSTGRES_URL_NON_POOLING sobre DATABASE_URL.
+   No ejecutarlo a ciegas desde el entorno de pruebas. Los nuevos registros también conservan el campo.
+
+Prueba local sin tocar servicios: `pnpm test:staff-function`.
+
 Después de modificar la lista, ejecuta manualmente `setupSheets` y después
-`syncStaffClassifications` para actualizar `role` y `staffType` en los registros
-existentes. Publica una nueva versión de la aplicación web y sincroniza Neon con
-`pnpm db:migrate` y `pnpm db:sync-participants`.
+`syncStaffClassifications` para actualizar `role`, `staffType` y `staffFunction` en los registros
+existentes. Para incorporar `staffFunction`, sigue el procedimiento específico anterior;
+no hace falta ejecutar la migración general de la base para añadir esta única columna.
