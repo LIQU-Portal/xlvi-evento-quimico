@@ -5,7 +5,12 @@ los participantes y los QR existentes. No requiere emitir nuevos QR ni modificar
 
 ## Reglas de esta entrega
 
-- Conferencias: una entrada y una salida por participante y sesión. La salida exige entrada previa.
+- Conferencias: registro continuo por auditorio y día, con varias entradas y salidas. No se escanea
+  al cambiar de conferencia dentro del mismo auditorio. Una estancia sin salida no aporta minutos.
+  Para cada conferencia se unen los intervalos cerrados y se recortan a su horario; solo si cubren
+  estrictamente más del 50% se reconocen esos minutos reales, nunca la duración completa por defecto.
+  El tiempo fuera, descansos y solapes no se cuentan dos veces. Cálculo en segundos, salida en minutos
+  truncados a dos decimales (sin redondear hacia arriba). Las constancias no se emiten en esta entrega.
 - Talleres y concursos: una entrada por participante y sesión/día. Exige inscripción confirmada (cada miembro del equipo presenta su QR).
 - Las fechas explícitas de Sheets determinan los días; incluye talleres previos a la inauguración.
   Si un taller tiene dos bloques horarios en el mismo día, conserva una sola entrada diaria.
@@ -14,8 +19,10 @@ los participantes y los QR existentes. No requiere emitir nuevos QR ni modificar
 - Ventana para ambos tipos de lectura: todo el día de la sesión (00:00 a 23:59:59),
   usando `America/Mexico_City` y el reloj del servidor.
 - El lector muestra solo sesiones asignadas del día actual. Coordinación puede asignar todos los días.
-- Una segunda lectura del mismo tipo devuelve “Ya estaba registrado”. No alterna entrada y salida automáticamente.
-- No se calculan horas acreditadas todavía. Entrada y salida son evidencia para una regla posterior de constancias.
+- Una entrada repetida mientras hay estancia abierta es duplicada; una salida sin estancia abierta
+  no crea otra salida. Después de salir se puede volver a entrar. No se alternan modos automáticamente.
+- Los registros individuales antiguos se conservan como evidencia histórica, sin inventar estancias
+  ni convertirlos automáticamente al cálculo nuevo. El reporte los distingue como registros sin cálculo.
 - Internet obligatorio. Si una petición pierde respuesta, repetir es seguro por la unicidad de los registros.
 - Captura manual por ID exige motivo; se conserva operador, hora y motivo.
 
@@ -68,7 +75,8 @@ explícitamente el modo activo; al cambiarlo se pausa la cámara para evitar reg
 2. Tener el esquema actual y el espejo de los participantes de prueba disponibles en esa base.
 3. Configurar `ATTENDANCE_ADMIN_EMAILS` y `ATTENDANCE_SIMULATION_ENABLED=true` solo en local / Preview.
    En producción las simulaciones se bloquean incluso si la variable queda en true.
-4. Ejecutar explícitamente `pnpm db:migrate-attendance` con `.env.local` apuntando al destino elegido.
+4. Ejecutar explícitamente `pnpm db:migrate-attendance --expected-fingerprint=b619c2fac063`
+   únicamente con `.env.local` apuntando a la rama aislada verificada de esta entrega.
    Añade tablas y función de asistencia; no borra ni cambia participantes o inscripciones.
    No hay migraciones en `next build`.
 5. Publicar el Preview y autorizar su callback Google:
@@ -81,8 +89,10 @@ explícitamente el modo activo; al cambiarlo se pausa la cámara para evitar reg
    explícitamente la huella en `scripts/check-attendance-preview.mjs`.
    Esta comprobación no se ejecuta en Production ni en otras ramas.
 6. Iniciar sesión como coordinador. Habilitar a la cuenta staff en la sección 1.
-7. En “Pruebas internas”, crear las cinco simulaciones de hoy. Son tres conferencias,
-   con A y B simultáneas, un taller y un concurso. No se insertan en Sheets ni en el catálogo público.
+7. En “Pruebas internas”, crear las simulaciones de hoy. A y C comparten Aula azul y son
+   consecutivas; B es simultánea en Aula morada. El lector muestra dos auditorios, un taller y un concurso.
+   Se usan IDs de simulación v2; se conserva la evidencia de las pruebas antiguas, sin mezclarla.
+   No se insertan en Sheets ni en el catálogo público.
 8. Asignar las simulaciones al staff. El operador cierra y abre `/registro-asistencia`.
 
 Las simulaciones conservan los horarios de su primera creación de ese día; pulsar el botón otra vez
@@ -90,6 +100,10 @@ no mueve sesiones con lecturas. Crear al comenzar las pruebas. Si se retoman al 
 crear las de ese nuevo día. No hay reloj ficticio ni bypass del horario real.
 
 ## Prueba guiada de 30–40 minutos
+
+Para la versión de auditorios, usar como guía principal [VALIDACION-AUDITORIOS.md](VALIDACION-AUDITORIOS.md).
+Las conferencias A/C corresponden al bloque Aula azul y B al bloque Aula morada; ya no se seleccionan
+como lectores individuales. La tabla siguiente conserva los escenarios generales adaptados al bloque.
 
 Usar dos teléfonos o un teléfono para escanear y otra pantalla para mostrar el QR.
 Cuenta S: staff de registro. Cuenta P: participante confirmado. Cuenta C opcional: segundo operador.
@@ -99,19 +113,19 @@ El coordinador puede ser S para las pruebas, añadiendo su correo al permiso cor
 | --- | --- | --- |
 | Permisos | P abre Mi cuenta y luego intenta `/registro-asistencia` y `/administracion/asistencia` | No ve enlaces de registro/coordinación y vuelve a Mi cuenta al abrirlos directamente |
 | Selección | S abre Registrar asistencia | Solo ve sus sesiones, identifica fecha, horario y lugar |
-| Cámara | S abre Conferencia A y pulsa Abrir cámara; acepta permiso | Vista trasera y modo ENTRADAS visible |
+| Cámara | S abre el bloque Aula azul y pulsa Abrir cámara; acepta permiso | Vista trasera y modo ENTRADAS visible |
 | Entrada | S lee el QR de P | Verde, nombre, ID, hora; una entrada |
 | Duplicado | Retirar el QR, esperar 3 segundos y mostrarlo otra vez | Amarillo; el conteo no sube |
 | Salida | S elige Salida y vuelve a abrir cámara; lee el QR de P | Una salida guardada; repetir devuelve duplicado |
-| Salida sin entrada | S elige Salida en Conferencia B y lee a P | Solicita entrada previa; no guarda salida |
-| Simultáneas | Registrar entrada de P en Conferencia B | Registro independiente de A; nunca cambia de sesión por sí solo |
+| Salida sin entrada | S elige Salida en Aula morada y lee a P | Solicita entrada previa; no guarda salida |
+| Simultáneas | Después de cerrar la estancia azul, registrar entrada de P en Aula morada | Registro independiente. Una estancia abierta en otro auditorio del día exige cerrarse primero |
 | Inscripción | Sin autorizar aún el roster de prueba, S lee P en el taller y concurso | “No tiene inscripción activa” |
 | Inscripción de prueba | Coordinador introduce el ID de P en “Guardar inscripción de simulación”; S vuelve a leerlo | Entrada permitida en taller y concurso; sin botón Salida |
 | QR ajeno | S lee un QR de una web cualquiera | Se rechaza y el lector sigue utilizable |
 | Escáner físico | Conectar el lector USB/Bluetooth, enfocar el campo y leer el QR (configurar sufijo Enter) | Mismo resultado que cámara; duplicado si ya había entrada |
-| Respaldo | En Conferencia C, S selecciona Capturar ID, escribe ID de P y motivo | Se registra con source manual y motivo en CSV; motivo vacío no se admite |
+| Respaldo | Con la estancia anterior cerrada, S abre Aula azul, selecciona Capturar ID, escribe ID de P y motivo | Se registra un reingreso con source manual y motivo en CSV; motivo vacío no se admite |
 | Conexión | Desactivar internet, leer otro QR y volver a activar internet | No anuncia éxito sin confirmación; repetir no duplica |
-| Dos lectores | Opcional: asignar también C a la misma conferencia; S y C leen P a la vez en una sesión aún sin entrada | Solo una entrada; el otro lector indica duplicado |
+| Dos lectores | Asignar también C al mismo bloque; S y C leen P a la vez sin estancia abierta | Solo una estancia; el otro lector indica duplicado |
 | Revocación | El coordinador desactiva S; S intenta otra lectura con el panel abierto | Acceso rechazado inmediatamente |
 | Exportación | Coordinador filtra por sesión y descarga CSV | Coinciden nombre, ID, sesión, entradas/salidas, operadores y motivos |
 

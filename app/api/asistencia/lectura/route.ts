@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       reference: String(body.reference ?? "").trim().slice(0, 200),
       direction: String(body.direction ?? ""), source: String(body.source ?? ""),
       reason: String(body.reason ?? "").trim().slice(0, 240), operatorEmail: session.user.email,
+      requestId: String(body.requestId ?? "").slice(0, 60),
     };
     return Response.json(await scanAttendance(input), { headers });
   } catch (error) {

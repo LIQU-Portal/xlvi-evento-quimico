@@ -38,6 +38,7 @@ export function AttendanceSessionList({ sessions, operators }: { sessions: Atten
           <div className="attendance-card-heading"><span className="attendance-badge" data-tone={s.isSimulation ? "test" : "neutral"}>{s.isSimulation ? "Simulación · " : ""}{s.type}</span>
             <span className="attendance-badge" data-tone={!s.active ? "neutral" : assigned.length ? "success" : "test"}>{!s.active ? "Inactiva" : assigned.length ? `${assigned.length} operadores` : "Sin asignar"}</span></div>
           <h3>{s.title}</h3><p>{format(s.startsAt)} – {format(s.endsAt)}</p><p className="attendance-muted">{s.venue}</p>
+          {s.isAuditorium && <p>Registro continuo del auditorio. No escanear entre conferencias.</p>}
           <span className="attendance-summary-action">Ver operadores y asignar</span>
         </summary>
         <p>{assigned.length ? `Asignados: ${assigned.map((o) => o.name || o.email).join(", ")}` : "Ningún operador habilitado asignado"}</p>

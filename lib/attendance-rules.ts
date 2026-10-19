@@ -11,6 +11,7 @@ export type AttendanceSession = {
   endsAt: string;
   isSimulation: boolean;
   active: boolean;
+  isAuditorium?: boolean;
   entries?: number;
   exits?: number;
   operators?: string[];
@@ -92,6 +93,7 @@ export function attendanceCsvCell(value: unknown) {
 }
 
 export const attendanceMessages: Record<string, string> = {
+  open_visit_elsewhere: "Tiene una entrada sin salida en otro auditorio. Registra primero su salida allí.",
   recorded: "Registro guardado",
   duplicate: "Ya estaba registrado",
   forbidden: "Tu acceso al lector no está activo. Contacta a tu coordinador.",

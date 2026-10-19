@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getSql } from "@/lib/db";
-import { isAttendanceAdmin, simulationEnabled, syncAttendanceSessions } from "@/lib/attendance";
+import { isAttendanceAdmin, simulationEnabled, syncAttendanceSessions, saveAttendanceSessions } from "@/lib/attendance";
 import { buildSimulationSessions } from "@/lib/attendance-simulations";
 
 export type AttendanceAdminState = { message: string; ok: boolean };
@@ -47,19 +47,18 @@ export async function manageAttendance(_previous: AttendanceAdminState, form: Fo
       message = "Asignaciones guardadas. El operador debe volver a abrir su panel.";
     } else if (operation === "sync") {
       const result = await syncAttendanceSessions(actor);
-      message = `${result.count} sesiones actualizadas desde el programa.${result.skipped.length
+      message = `${result.count} sesiones actualizadas desde el programa; ${result.blocks} bloques de auditorio.${result.skipped.length
         ? ` Sin fecha/horario válido (revisar en Sheets): ${result.skipped.join("; ")}.` : ""}`;
     } else if (operation === "simulation") {
       if (!simulationEnabled()) throw new Error("Las simulaciones solo están habilitadas en el entorno de pruebas.");
-      const sessions = buildSimulationSessions();
-      await sql.transaction([
-        ...sessions.map((s) => sql.query(`INSERT INTO attendance_sessions
-          (id, activity_id, title, type, venue, starts_at, ends_at, is_simulation, updated_by)
-          VALUES ($1,NULL,$2,$3,$4,$5,$6,TRUE,$7) ON CONFLICT(id) DO NOTHING`,
-          [s.id, s.title, s.type, s.venue, s.startsAt, s.endsAt, actor])),
-        sql.query("INSERT INTO attendance_audit(actor_email, action, detail) VALUES ($1,'create_simulations',$2::jsonb)", [actor, JSON.stringify({ ids: sessions.map((s) => s.id) })]),
-      ]);
-      message = "Cinco actividades de simulación creadas para hoy. Asigna a tus operadores abajo.";
+      const candidates = buildSimulationSessions();
+      const stored = await sql.query("SELECT id,starts_at,ends_at FROM attendance_sessions WHERE id=ANY($1::text[])", [candidates.map(s => s.id)]);
+      const sessions = candidates.map(s => {
+        const previous = stored.find(p => p.id === s.id);
+        return previous ? { ...s, startsAt: new Date(String(previous.starts_at)).toISOString(), endsAt: new Date(String(previous.ends_at)).toISOString() } : s;
+      });
+      await saveAttendanceSessions(sessions, actor, true);
+      message = "Simulaciones de hoy listas: dos auditorios (A y C consecutivas; B simultánea), un taller y un concurso. Asigna operadores.";
     } else if (operation === "simulation-roster") {
       if (!simulationEnabled()) throw new Error("Simulaciones deshabilitadas.");
       const id = String(form.get("participantId") ?? "").trim().toUpperCase();

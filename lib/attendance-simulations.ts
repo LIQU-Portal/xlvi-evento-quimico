@@ -13,8 +13,8 @@ export function buildSimulationSessions(now = new Date()): AttendanceSession[] {
     { key: "contest", type: "Concurso", title: "Concurso de simulación", offset: 0 },
   ] as const;
   return templates.map((t) => ({
-    id: `simulation-${date}-${t.key}`, activityId: null, title: `SIMULACIÓN · ${t.title}`,
-    type: t.type, venue: "Entorno de pruebas", isSimulation: true, active: true,
+    id: `simulation-v2-${date}-${t.key}`, activityId: null, title: `SIMULACIÓN · ${t.title}`,
+    type: t.type, venue: t.key === "conference-b" ? "Aula morada" : t.type === "Conferencia" ? "Aula azul" : "Entorno de pruebas", isSimulation: true, active: true,
     startsAt: `${date}T${formatMinutes(start + t.offset)}:00-06:00`,
     endsAt: `${date}T${formatMinutes(start + t.offset + 60)}:00-06:00`,
   }));

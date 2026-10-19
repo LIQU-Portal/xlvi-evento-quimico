@@ -35,6 +35,8 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
   const controls = useRef<IScannerControls | null>(null);
   const cameraGeneration = useRef(0);
   const inFlight = useRef(false);
+  // Retain the UUID after a lost response so rescanning cannot create a re-entry.
+  const pendingRequest = useRef<{ key: string; id: string } | null>(null);
   const lastRead = useRef({ key: "", time: 0 });
   const selected = sessions.find((s) => s.id === selectedId);
   const [counts, setCounts] = useState(() => Object.fromEntries(sessions.map((s) => [s.id, { entries: s.entries ?? 0, exits: s.exits ?? 0 }])));
@@ -82,7 +84,7 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
 
   const submit = useCallback(async (value: string, source: "qr" | "manual" = "qr", fromCamera = false) => {
     if (!selected || inFlight.current || !value.trim()) return;
-    const key = `${selected.id}:${direction}:${value}`;
+    const key = `${selected.id}:${direction}:${source}:${reason}:${value}`;
     const time = Date.now();
     if (source === "qr" && !fromCamera && lastRead.current.key === key && time - lastRead.current.time < 3000) return;
     lastRead.current = { key, time };
@@ -90,14 +92,16 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
     setBusy(true);
     setResult(null);
     setCameraFeedback(true);
+    if (pendingRequest.current?.key !== key) pendingRequest.current = { key, id: crypto.randomUUID() };
     try {
       const response = await fetch("/api/asistencia/lectura", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: selected.id, direction, reference: value, source, reason }),
+        body: JSON.stringify({ sessionId: selected.id, direction, reference: value, source, reason, requestId: pendingRequest.current.id }),
         signal: AbortSignal.timeout(12000),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
+      pendingRequest.current = null;
       const next = data as AttendanceResult;
       setResult(next);
       notifyRead(next.outcome);
@@ -167,7 +171,7 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
     const todays = sessions.filter((s) => localEventTime(new Date(s.startsAt)).date === today);
     return <section className="attendance-picker">
       <h1>¿Dónde vas a registrar?</h1>
-      <p>Elige tu sesión asignada.</p>
+      <p>Elige tu auditorio o actividad asignada.</p>
       <button className="attendance-back" onClick={() => window.location.reload()}>Actualizar sesiones</button>
       {!todays.length && <div className="attendance-empty">No tienes sesiones asignadas para hoy. Contacta a tu coordinador.</div>}
       {todays.map((s) => <button className="attendance-session-choice" key={s.id}
@@ -191,6 +195,7 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
     <button className="attendance-back" disabled={busy} onClick={() => { stopCamera(); setSelectedId(null); setResult(null); }}><ChevronLeft size={18} /> Cambiar sesión</button>
     {selected.isSimulation && <div className="attendance-simulation">SIMULACIÓN · No cuenta como asistencia real</div>}
     <h1>{selected.title}</h1>
+    {selected.isAuditorium && <p className="attendance-notice">Entrada al llegar y salida al retirarse. No escanear entre conferencias. Sin salida no se reconocen minutos de esa estancia.</p>}
     <p>{dateLabel(selected.startsAt)} · {timeLabel(selected.startsAt)}–{timeLabel(selected.endsAt)}<br />{selected.venue}</p>
     <div className="attendance-direction" aria-label="Tipo de registro">
       <button className={direction === "entry" ? "selected" : ""} disabled={busy} onClick={() => { stopCamera(); setDirection("entry"); setResult(null); }}>Entrada</button>

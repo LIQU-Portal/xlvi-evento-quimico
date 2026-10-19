@@ -38,11 +38,11 @@ export default async function AttendanceAdminPage({ searchParams }: { searchPara
     </section>
     <section id="preparar" className="attendance-admin-section"><h2>2. Prepara las sesiones</h2>
       <details className="attendance-program-setup"><summary>Importar o actualizar el programa real</summary>
-        <p>Lee los horarios de Sheets y conserva las lecturas existentes. Cada día del taller tiene su propia sesión. Para probar, usa las simulaciones de abajo.</p>
+        <p>Agrupa las conferencias por auditorio y día. Talleres y concursos conservan su sesión diaria. Los bloques con lecturas no admiten cambios de horarios o sede.</p>
         <AttendanceAdminForm operation="sync" label="Actualizar sesiones del programa" />
       </details>
       {simulationEnabled() && <div className="attendance-simulation"><h3>Pruebas internas</h3>
-        <p>Solo para pruebas: tres conferencias (A y B simultáneas), un taller y un concurso. No aparecen en el programa público.</p>
+        <p>Dos auditorios: A y C consecutivas en Aula azul y B simultánea en Aula morada; un taller y un concurso. No aparecen en el programa público.</p>
         <AttendanceAdminForm operation="simulation" label="Crear las 5 simulaciones de hoy" />
         <h4>Autoriza al participante de prueba</h4><p>Para registrar su entrada al taller y al concurso de simulación, agrega su ID. Las conferencias no necesitan este paso.</p>
         <AttendanceAdminForm operation="simulation-roster" label="Guardar inscripción de simulación">
@@ -60,9 +60,10 @@ export default async function AttendanceAdminPage({ searchParams }: { searchPara
         <option value="">Todas</option>{sessions.map((s) => <option key={s.id} value={s.id}>{format(s.startsAt)} · {s.title}</option>)}
       </select></label><button type="submit" className="attendance-secondary">Ver registros</button></form>
       <Link href={`/administracion/asistencia/exportar${selected ? `?sesion=${encodeURIComponent(selected)}` : ""}`}>Descargar CSV</Link>
-      <p>{records.length} participantes por sesión. Las entradas y salidas no representan todavía horas acreditadas.</p>
-      <div className="attendance-table-wrapper"><table><thead><tr><th>Sesión</th><th>Participante</th><th>ID</th><th>Entrada</th><th>Salida</th><th>Registró</th></tr></thead>
-        <tbody>{records.map((r) => <tr key={`${r.session_id}:${r.participant_id}`}><td>{String(r.title)}</td><td>{String(r.name)}</td><td>{String(r.participant_id)}</td><td>{format(r.entered_at)}</td><td>{format(r.exited_at)}</td><td>{String(r.entry_operator ?? "—")} / {String(r.exit_operator ?? "—")}</td></tr>)}</tbody></table></div>
+      <p><Link href={`/administracion/asistencia/exportar?detalle=estancias${selected ? `&sesion=${encodeURIComponent(selected)}` : ""}`}>Descargar entradas y salidas de auditorio</Link></p>
+      <p>{records.length} registros por actividad. En conferencias solo suman intervalos cerrados y se reconocen minutos reales si superan el 50%. No se emiten constancias todavía.</p>
+      <div className="attendance-table-wrapper"><table><thead><tr><th>Actividad</th><th>Participante</th><th>ID</th><th>Primera entrada</th><th>Última salida</th><th>Minutos presentes / reconocidos</th><th>Entradas sin salida</th></tr></thead>
+        <tbody>{records.map((r) => <tr key={`${r.session_id}:${r.participant_id}:${r.evidence_type}`}><td>{String(r.title)}</td><td>{String(r.name)}</td><td>{String(r.participant_id)}</td><td>{format(r.entered_at)}</td><td>{format(r.exited_at)}</td><td>{r.evidence_type === "auditorium_intervals" ? `${r.attended_minutes} / ${r.credited_minutes}` : "Sin cálculo: registro individual"}</td><td>{String(r.open_intervals ?? "—")}</td></tr>)}</tbody></table></div>
     </section>
   </div></main>;
 }

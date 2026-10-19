@@ -3,6 +3,13 @@
 Estado: preparado para revisión, NO aprobado para producción. Este documento no ejecuta operaciones.
 Rama: `feature/control-asistencia-qr`. Main y la base estable no se modifican al preparar esta entrega.
 
+**Actualización: estancias de auditorio.** La regla de conferencias cambió: varias entradas/salidas
+por auditorio/día, minutos reales y más del 50% por conferencia, solo con intervalos cerrados.
+La evidencia alternativa de las cuatro pruebas y los límites del estrés están en
+[VALIDACION-AUDITORIOS.md](VALIDACION-AUDITORIOS.md). Las casillas siguientes siguen reservadas a
+la aprobación humana; no confundir las pruebas automatizadas con un ensayo físico del escáner.
+Hay una migración aditiva nueva `attendance-auditorium.sql`, incluida por el migrador explícito.
+
 ## 1. Bloqueo de aprobación: cuatro pruebas manuales pendientes
 
 Realizar en Preview, con las simulaciones de la fecha actual de Ciudad de México. Si es otro día,
@@ -56,6 +63,7 @@ Revisión final de código antes de aprobar:
 
 ```powershell
 pnpm test:attendance
+pnpm test:attendance-auditorium
 pnpm test:attendance-release
 pnpm lint
 pnpm build
@@ -114,7 +122,7 @@ node --env-file=.env.attendance-production.local scripts/migrate-staff-function.
    de publicar esta versión de la web. No ejecutar la migración general heredada para añadirla.
 
 ```powershell
-node --env-file=.env.attendance-production.local scripts/migrate-attendance.mjs
+node --env-file=.env.attendance-production.local scripts/migrate-attendance.mjs --expected-fingerprint=187d4e41ad84
 node --env-file=.env.attendance-production.local scripts/check-attendance-release.mjs --environment=production --phase=after-migration --expected-fingerprint=187d4e41ad84
 ```
 
