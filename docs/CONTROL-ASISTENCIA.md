@@ -43,6 +43,17 @@ el acceso en coordinación; cambiar solo la hoja de staff requiere ejecutar la s
 `pnpm db:sync-participants` para actualizar el espejo de Neon.
 
 El contador del lector refleja las lecturas conocidas por ese panel; volver a abrirlo consulta el total.
+Cada lectura muestra un título grande (entrada/salida registrada, duplicado o rechazo), nombre e ID
+cuando el servidor los confirma. Con cámara, el resultado también aparece sobre el visor durante
+unos segundos. El mismo QR sostenido ante la cámara no genera peticiones repetidas: retirarlo
+aproximadamente un segundo permite volver a comprobarlo; un QR distinto se atiende sin botón adicional.
+El sonido es opcional y se habilita con una acción del operador; la vibración depende del dispositivo.
+Para el escáner físico, la distribución de teclado configurada en el dispositivo debe coincidir con
+la de la computadora. Si cambia letras (por ejemplo Y/Z), configurar su "Keyboard Country" según
+el manual del modelo y volver a probar en un editor de texto. Nunca corregir automáticamente la firma
+del QR ni aceptar tokens parecidos; el servidor exige coincidencia exacta.
+Los últimos tres registros nuevos quedan visibles en memoria del dispositivo, sin duplicados ni rechazos.
+Una respuesta perdida muestra "Sin confirmación", nunca un éxito ni una afirmación de que no se guardó.
 La tabla administrativa y el CSV consultan los registros guardados. Entrada y salida muestran
 explícitamente el modo activo; al cambiarlo se pausa la cámara para evitar registrar accidentalmente otra dirección.
 

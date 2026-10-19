@@ -4,6 +4,22 @@ import { PGlite } from "@electric-sql/pglite";
 import { buildAttendanceSessions, inspectAttendanceSchedule, sessionWindow, validScanReference, attendanceCsvCell, normalizedEmailList, isAuthorizedCoordinator, areSimulationsEnabled } from "../lib/attendance-rules.ts";
 import { buildSimulationSessions } from "../lib/attendance-simulations.ts";
 import { attendanceOperatorListQuery, operatorCanScan } from "../lib/attendance-operator-list.ts";
+import { acceptCameraRead, attendanceFeedback, newCameraReadGate } from "../lib/attendance-feedback.ts";
+
+const gate = newCameraReadGate();
+assert.equal(acceptCameraRead(gate, "test-A", 0), true);
+assert.equal(acceptCameraRead(gate, "test-A", 5000), false, "Un QR inmóvil no sustituye el éxito por un duplicado");
+assert.equal(acceptCameraRead(gate, "test-B", 5500), true, "El siguiente participante no necesita pulsar un botón");
+assert.equal(acceptCameraRead(gate, null, 6000), false);
+assert.equal(acceptCameraRead(gate, "test-B", 6500), false, "Un solo fotograma vacío no rearma el mismo QR");
+acceptCameraRead(gate, null, 7000);
+assert.equal(acceptCameraRead(gate, "test-B", 8100), true, "Retirar el QR permite volver a verificarlo");
+assert.equal(attendanceFeedback(null, "entry", true).tone, "pending");
+assert.equal(attendanceFeedback({ outcome: "recorded", message: "OK" }, "entry", false).title, "ENTRADA REGISTRADA");
+assert.equal(attendanceFeedback({ outcome: "recorded", message: "OK" }, "exit", false).title, "SALIDA REGISTRADA");
+assert.equal(attendanceFeedback({ outcome: "duplicate", message: "Repetido" }, "entry", false).tone, "duplicate");
+assert.equal(attendanceFeedback({ outcome: "not_enrolled", message: "Sin inscripción" }, "entry", false).title, "NO SE REGISTRÓ");
+assert.equal(attendanceFeedback({ outcome: "error", message: "Sin red" }, "entry", false).title, "SIN CONFIRMACIÓN");
 
 // PostgreSQL local en memoria: no lee .env ni se conecta a Neon.
 const db = new PGlite();
