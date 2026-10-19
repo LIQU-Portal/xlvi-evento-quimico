@@ -45,9 +45,13 @@ el acceso en coordinación; cambiar solo la hoja de staff requiere ejecutar la s
 El contador del lector refleja las lecturas conocidas por ese panel; volver a abrirlo consulta el total.
 Cada lectura muestra un título grande (entrada/salida registrada, duplicado o rechazo), nombre e ID
 cuando el servidor los confirma. Con cámara, el resultado también aparece sobre el visor durante
-unos segundos. El mismo QR sostenido ante la cámara no genera peticiones repetidas: retirarlo
+un segundo después de la respuesta del servidor; la tarjeta superior permanece hasta la siguiente lectura.
+El contador del modo actual (entradas o salidas) se muestra sobre el visor y en la tarjeta; solo una
+lectura nueva confirmada muestra +1. Al retirarse la confirmación, el contador sigue visible sobre la cámara.
+Es el conteo conocido por ese panel, no un contador global en tiempo real ni una medida del aforo actual.
+El mismo QR sostenido ante la cámara no genera peticiones repetidas: retirarlo
 aproximadamente un segundo permite volver a comprobarlo; un QR distinto se atiende sin botón adicional.
-El sonido es opcional y se habilita con una acción del operador; la vibración depende del dispositivo.
+La confirmación no necesita sonido; la vibración es un complemento que depende del dispositivo.
 Para el escáner físico, la distribución de teclado configurada en el dispositivo debe coincidir con
 la de la computadora. Si cambia letras (por ejemplo Y/Z), configurar su "Keyboard Country" según
 el manual del modelo y volver a probar en un editor de texto. Nunca corregir automáticamente la firma

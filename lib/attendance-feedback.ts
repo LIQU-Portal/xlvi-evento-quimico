@@ -1,5 +1,10 @@
 import type { AttendanceDirection, AttendanceResult } from "./attendance-rules";
 
+export const CAMERA_CONFIRMATION_MS = 1000;
+export function attendanceReadDelta(result: AttendanceResult | null, busy: boolean) {
+  return !busy && result?.outcome === "recorded" ? 1 : 0;
+}
+
 export function attendanceFeedback(result: AttendanceResult | null, direction: AttendanceDirection, busy: boolean) {
   if (busy) return { tone: "pending", title: "Comprobando QR…", detail: "Espera la confirmación antes de continuar." };
   if (!result) return { tone: "idle", title: "Listo para leer", detail: "Acerca el QR personal del participante." };

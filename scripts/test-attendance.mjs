@@ -4,7 +4,14 @@ import { PGlite } from "@electric-sql/pglite";
 import { buildAttendanceSessions, inspectAttendanceSchedule, sessionWindow, validScanReference, attendanceCsvCell, normalizedEmailList, isAuthorizedCoordinator, areSimulationsEnabled } from "../lib/attendance-rules.ts";
 import { buildSimulationSessions } from "../lib/attendance-simulations.ts";
 import { attendanceOperatorListQuery, operatorCanScan } from "../lib/attendance-operator-list.ts";
-import { acceptCameraRead, attendanceFeedback, newCameraReadGate } from "../lib/attendance-feedback.ts";
+import { acceptCameraRead, attendanceFeedback, attendanceReadDelta, CAMERA_CONFIRMATION_MS, newCameraReadGate } from "../lib/attendance-feedback.ts";
+
+assert.equal(CAMERA_CONFIRMATION_MS, 1000);
+assert.equal(attendanceReadDelta({ outcome: "recorded", message: "OK" }, false), 1);
+assert.equal(attendanceReadDelta({ outcome: "recorded", message: "OK" }, true), 0);
+for (const outcome of ["duplicate", "error", "not_enrolled", "forbidden"]) {
+  assert.equal(attendanceReadDelta({ outcome, message: "Prueba" }, false), 0, "Solo una respuesta confirmada nueva muestra +1");
+}
 
 const gate = newCameraReadGate();
 assert.equal(acceptCameraRead(gate, "test-A", 0), true);
