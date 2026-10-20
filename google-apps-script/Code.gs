@@ -66,6 +66,10 @@ function doPost(event) {
     const payload = JSON.parse(event.postData.contents || "{}");
     validateSecret_(payload.secret);
 
+    if (payload.action === "listStaffRegistrations") {
+      return json_(listStaffRegistrations_());
+    }
+
     if (payload.action === "lookup") {
       return json_(lookup_(payload.email));
     }
@@ -161,6 +165,35 @@ function lookupMany_(rawEmails) {
       return { email: email, registration: registration };
     }),
   };
+}
+
+// Read only: no emails, QR generation, enrollment changes or permission grants.
+function listStaffRegistrations_() {
+  const spreadsheet = getSpreadsheet_();
+  const staff = ensureSheet_(spreadsheet, STAFF_SHEET, STAFF_HEADERS);
+  const staffRows = staff.getDataRange().getDisplayValues();
+  const registrations = ensureSheet_(spreadsheet, REGISTRATIONS_SHEET, REGISTRATION_HEADERS)
+    .getDataRange().getDisplayValues();
+  const seen = {};
+  const result = [];
+  for (let row = 1; row < staffRows.length; row += 1) {
+    if (!String(staffRows[row][0] || "").trim()) continue;
+    const email = normalizeEmail_(staffRows[row][0]);
+    if (seen[email]) throw new Error("Hay correos duplicados en Staff.");
+    seen[email] = true;
+    const active = ["si", "sí", "true", "1", "activo"].includes(String(staffRows[row][2]).trim().toLowerCase());
+    const matches = registrations.slice(1).filter(function (r) {
+      return String(r[3] || "").trim().toLowerCase() === email;
+    });
+    if (matches.length > 1) throw new Error("Hay registros duplicados para una persona de Staff.");
+    const registration = matches[0];
+    result.push({ email: email, name: String(staffRows[row][1] || "").trim(), active: active, id: registration ? registration[0] : null,
+      status: registration ? registration[9] : null,
+      role: active ? "Staff" : (registration ? getAccountTypeFromEmail_(email) : null),
+      staffType: active ? normalizeStaffType_(staffRows[row][3]) : "",
+      staffFunction: active ? normalizeStaffFunction_(staffRows[row][4]) : "" });
+  }
+  return { ok: true, staff: result };
 }
 
 function listRegistrations_() {

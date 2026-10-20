@@ -71,7 +71,7 @@ BEGIN
     RETURN QUERY SELECT 'session_unavailable'::text,NULL::text,NULL::text,NULL::timestamptz; RETURN;
   END IF;
   PERFORM 1 FROM attendance_operators o JOIN participants x ON lower(x.email)=o.email
-    WHERE o.email=lower(p_operator_email) AND o.active AND x.role='Staff' AND x.status='Confirmado' FOR SHARE OF o;
+    WHERE o.email=lower(p_operator_email) AND o.active AND attendance_staff_can_register(o.email) FOR SHARE OF o;
   IF NOT FOUND THEN
     RETURN QUERY SELECT 'forbidden'::text,NULL::text,NULL::text,NULL::timestamptz; RETURN;
   END IF;

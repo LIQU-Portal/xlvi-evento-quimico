@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { getSql } from "@/lib/db";
 import { isAttendanceAdmin, simulationEnabled, syncAttendanceSessions, saveAttendanceSessions } from "@/lib/attendance";
 import { buildSimulationSessions } from "@/lib/attendance-simulations";
+import { syncAttendanceStaff } from "@/lib/attendance-staff-sync";
 
 export type AttendanceAdminState = { message: string; ok: boolean };
 
@@ -21,7 +22,7 @@ export async function manageAttendance(_previous: AttendanceAdminState, form: Fo
       const active = form.get("active") === "true";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) throw new Error("Escribe un correo válido.");
       if (active) {
-        const staff = await sql.query("SELECT id FROM participants WHERE lower(email) = $1 AND role = 'Staff' AND status = 'Confirmado'", [email]);
+        const staff = await sql.query("SELECT id FROM participants WHERE lower(email) = $1 AND attendance_staff_can_register(email)", [email]);
         if (!staff.length) throw new Error("La cuenta debe estar registrada y reconocida como staff activo. Sincroniza la lista antes de habilitarla.");
       }
       await sql.transaction([
@@ -36,7 +37,7 @@ export async function manageAttendance(_previous: AttendanceAdminState, form: Fo
       const rows = await sql.query("SELECT id, is_simulation FROM attendance_sessions WHERE id = $1 AND active", [sessionId]);
       if (!rows.length || (rows[0].is_simulation && !simulationEnabled())) throw new Error("Sesión no disponible.");
       const operators = await sql.query(`SELECT o.email FROM attendance_operators o JOIN participants p ON lower(p.email) = o.email
-        WHERE o.active AND p.role = 'Staff' AND p.status = 'Confirmado' AND o.email = ANY($1::text[])`, [emails]);
+        WHERE o.active AND attendance_staff_can_register(o.email) AND o.email = ANY($1::text[])`, [emails]);
       if (operators.length !== emails.length) throw new Error("Una de las cuentas seleccionadas no tiene acceso activo.");
       await sql.transaction([
         sql.query("SELECT id FROM attendance_sessions WHERE id = $1 FOR UPDATE", [sessionId]),
@@ -45,6 +46,9 @@ export async function manageAttendance(_previous: AttendanceAdminState, form: Fo
         sql.query("INSERT INTO attendance_audit(actor_email, action, detail) VALUES ($1,'assign',$2::jsonb)", [actor, JSON.stringify({ sessionId, emails })]),
       ]);
       message = "Asignaciones guardadas. El operador debe volver a abrir su panel.";
+    } else if (operation === "staff-sync") {
+      const result = await syncAttendanceStaff(actor);
+      message = `${result.total} personas en Staff: ${result.updated} clasificaciones actualizadas, ${result.pending} registros pendientes o por revisar. ${result.revoked} accesos desactivados. Habilita y asigna sesiones a quienes registrarán asistencia.`;
     } else if (operation === "sync") {
       const result = await syncAttendanceSessions(actor);
       message = `${result.count} sesiones actualizadas desde el programa; ${result.blocks} bloques de auditorio.${result.skipped.length

@@ -24,17 +24,18 @@ export function AttendanceOperatorList({ operators, sessions }: {
       </select></label>
     </div>
     <p className="attendance-muted" role="status">{visible.length} de {operators.length} cuentas</p>
-    {!operators.length && <p className="attendance-empty">No hay staff confirmado en esta base. Revisa la hoja Staff y sincroniza los participantes.</p>}
+    {!operators.length && <p className="attendance-empty">No hay staff de registro disponible. Revisa la hoja Staff y pulsa Actualizar staff desde Sheets.</p>}
     {!!operators.length && !visible.length && <p>No hay coincidencias. Prueba otro nombre o filtro.</p>}
     <div className="attendance-operator-grid">{visible.map((o) => {
-      const eligible = o.role === "Staff" && o.status === "Confirmado";
+      const eligible = o.eligible;
       const enabled = operatorCanScan(o);
       const assigned = sessions.filter((s) => s.active && s.operators?.includes(o.email));
-      const status = !eligible ? "No cumple requisitos" : enabled ? "Habilitado" : o.configured ? "Desactivado" : "Sin habilitar";
+      const status = !eligible ? o.status === "Registro general pendiente" ? "Registro general pendiente" : "No cumple requisitos" : enabled ? "Habilitado" : o.configured ? "Desactivado" : "Sin habilitar";
       return <article key={o.email} className="attendance-operator-card">
         <div className="attendance-card-heading"><strong>{o.name || o.email}</strong><span className="attendance-badge" data-tone={enabled ? "success" : "neutral"}>{status}</span></div>
         <p className="attendance-operator-email">{o.email}</p>
         <p className="attendance-muted">{o.staffType ? `Staff ${o.staffType.toLocaleLowerCase("es")}` : eligible ? "Staff" : "Revisar registro o clasificación"}</p>
+        {o.staffFunction && <p className="attendance-muted">{o.staffFunction}</p>}
         <p>{enabled ? `${assigned.length} sesiones asignadas` : "Sin permiso para registrar"}</p>
         {!!assigned.length && <details className="attendance-assigned-details"><summary>Ver sesiones asignadas</summary><ul>{assigned.map((s) => <li key={s.id}>
           {new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", day: "numeric", month: "short" }).format(new Date(s.startsAt))} · {s.title}
@@ -44,6 +45,6 @@ export function AttendanceOperatorList({ operators, sessions }: {
         </AttendanceAdminForm>}
       </article>;
     })}</div>
-    <p className="attendance-muted">Esta lista usa el espejo de Neon. Si falta alguien, sincroniza participantes después de actualizar la hoja Staff. Estar en esta lista no concede acceso.</p>
+    <p className="attendance-muted">Usa Actualizar staff desde Sheets después de cada cambio en la hoja. La última lista válida se conserva si Google no responde. Estar en esta lista no concede acceso: habilita el lector y asigna sesiones.</p>
   </>;
 }

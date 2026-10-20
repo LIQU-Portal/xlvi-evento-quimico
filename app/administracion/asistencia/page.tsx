@@ -9,6 +9,7 @@ import { attendanceReport, isAttendanceAdmin, listAttendanceOperators, listAtten
 import "@/app/registro-asistencia/style.css";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 180;
 const format = (value: unknown) => value ? new Intl.DateTimeFormat("es-MX", {
   timeZone: "America/Mexico_City", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
 }).format(new Date(String(value))) : "—";
@@ -33,6 +34,8 @@ export default async function AttendanceAdminPage({ searchParams }: { searchPara
     </div>
     <nav className="attendance-step-nav" aria-label="Pasos de coordinación"><a href="#operadores">1 · Elegir staff</a><a href="#preparar">2 · Preparar sesiones</a><a href="#asignar">3 · Asignar</a><a href="#registros">4 · Ver asistentes</a></nav>
     <section id="operadores" className="attendance-admin-section"><h2>1. Elige quién puede registrar</h2>
+      <AttendanceAdminForm operation="staff-sync" label="Actualizar staff desde Sheets" />
+      <p>Después de editar Staff, actualiza aquí. Solo el staff activo con función Registro de asistencia puede habilitarse. Si falta su registro general, aparecerá pendiente. No se crean usuarios ni permisos automáticamente.</p>
       <p>Busca a la persona y pulsa <strong>Habilitar lector</strong>. Después asígnale sus sesiones en el paso 3.</p>
       <AttendanceOperatorList operators={operators} sessions={sessions} />
     </section>

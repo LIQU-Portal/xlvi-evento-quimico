@@ -23,7 +23,7 @@ export async function attendanceAccess(email: string | null | undefined) {
   const admin = isAttendanceAdmin(email);
   try {
     const rows = await getSql().query(`SELECT 1 FROM attendance_operators o JOIN participants p ON lower(p.email) = o.email
-      WHERE o.email = lower($1) AND o.active AND p.status = 'Confirmado' AND p.role = 'Staff'`, [email]);
+      WHERE o.email = lower($1) AND o.active AND attendance_staff_can_register(o.email)`, [email]);
     return { admin, operator: rows.length > 0 };
   } catch {
     // Una migración pendiente no debe impedir abrir Mi cuenta.
@@ -66,6 +66,7 @@ export async function listAttendanceOperators(): Promise<AttendanceOperatorOptio
     email: String(row.email), name: row.name == null ? null : String(row.name),
     role: row.role == null ? null : String(row.role), status: row.status == null ? null : String(row.status),
     staffType: row.staff_type == null ? null : String(row.staff_type),
+    staffFunction: row.staff_function == null ? null : String(row.staff_function), eligible: Boolean(row.eligible),
     active: Boolean(row.active), configured: Boolean(row.configured),
   }));
 }

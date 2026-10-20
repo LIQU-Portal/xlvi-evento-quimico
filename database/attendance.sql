@@ -59,6 +59,22 @@ CREATE TABLE IF NOT EXISTS attendance_audit (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- statement-breakpoint
+-- Last successful Staff snapshot is authoritative; before the first sync,
+-- require an explicitly classified registration operator (never infer from Staff alone).
+CREATE INDEX IF NOT EXISTS attendance_audit_action_id_idx ON attendance_audit(action,id DESC);
+-- statement-breakpoint
+CREATE OR REPLACE FUNCTION attendance_staff_can_register(p_email TEXT) RETURNS BOOLEAN
+LANGUAGE sql STABLE AS $$
+  WITH snapshot AS (SELECT detail FROM attendance_audit WHERE action='staff_sync_snapshot' ORDER BY id DESC LIMIT 1)
+  SELECT EXISTS (SELECT 1 FROM participants p WHERE lower(p.email)=lower(p_email)
+    AND p.role='Staff' AND p.status='Confirmado' AND p.staff_function='Registro de asistencia'
+    AND (NOT EXISTS(SELECT 1 FROM snapshot) OR EXISTS(
+      SELECT 1 FROM snapshot, jsonb_array_elements(snapshot.detail->'staff') AS s
+      WHERE s->>'email'=lower(p_email) AND (s->>'active')::boolean
+        AND s->>'staffFunction'='Registro de asistencia' AND s->>'id'=p.id AND s->>'status'='Confirmado'
+    )));
+$$;
+-- statement-breakpoint
 CREATE OR REPLACE FUNCTION record_attendance(
   p_session_id TEXT, p_operator_email TEXT, p_reference TEXT,
   p_direction TEXT, p_source TEXT, p_manual_reason TEXT,
@@ -79,7 +95,7 @@ BEGIN
     RETURN QUERY SELECT 'session_unavailable'::TEXT, NULL::TEXT, NULL::TEXT, NULL::TIMESTAMPTZ; RETURN;
   END IF;
   PERFORM 1 FROM attendance_operators o JOIN participants p ON lower(p.email) = o.email
-    WHERE o.email = lower(p_operator_email) AND o.active AND p.role = 'Staff' AND p.status = 'Confirmado'
+    WHERE o.email = lower(p_operator_email) AND o.active AND attendance_staff_can_register(o.email)
     FOR SHARE OF o;
   IF NOT FOUND THEN
     RETURN QUERY SELECT 'forbidden'::TEXT, NULL::TEXT, NULL::TEXT, NULL::TIMESTAMPTZ; RETURN;

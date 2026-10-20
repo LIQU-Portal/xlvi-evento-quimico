@@ -46,13 +46,14 @@ try {
   ]) await db.query(`INSERT INTO participants(id,email,name,account_type,role,institutional_code,affiliation,status,qr_token,created_at)
     VALUES ($1,$2,$2,'Alumno',$3,'123456789','Química',$4,$5,NOW())`, [id, email, role, status, qr]);
   await db.query("INSERT INTO attendance_operators(email,updated_by) VALUES ('staff@alumnos.udg.mx','coordinator')");
-  const candidates = (await db.query(attendanceOperatorListQuery)).rows;
+  await db.query("UPDATE participants SET staff_function='Registro de asistencia' WHERE role='Staff'");
+  const candidates = (await db.query(attendanceOperatorListQuery)).rows.map(r => ({...r,staffFunction:r.staff_function}));
   assert.deepEqual(new Set(candidates.map((o) => o.email)), new Set(["staff@alumnos.udg.mx", "second@academicos.udg.mx"]));
   assert.equal(candidates.find((o) => o.email === "second@academicos.udg.mx").configured, false);
   assert.equal(candidates.find((o) => o.email === "second@academicos.udg.mx").active, false);
   assert.equal(operatorCanScan(candidates.find((o) => o.email === "staff@alumnos.udg.mx")), true);
   await db.query("UPDATE participants SET role = 'Alumno' WHERE id = $1", [staff]);
-  const revokedCandidate = (await db.query(attendanceOperatorListQuery)).rows.find((o) => o.email === "staff@alumnos.udg.mx");
+  const revokedCandidate = (await db.query(attendanceOperatorListQuery)).rows.map(r => ({...r,staffFunction:r.staff_function})).find((o) => o.email === "staff@alumnos.udg.mx");
   assert.ok(revokedCandidate, "Una cuenta revocada con permiso anterior sigue visible para desactivarla");
   assert.equal(operatorCanScan(revokedCandidate), false);
   await db.query("UPDATE participants SET role = 'Staff' WHERE id = $1", [staff]);

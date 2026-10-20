@@ -37,6 +37,7 @@ try {
   const at = time => `${date}T${time}:00-06:00`;
   for (let i = 0; i < 4; i++) await db.query(`INSERT INTO participants(id,email,name,account_type,role,institutional_code,affiliation,status,qr_token,created_at)
     VALUES($1,$2,'Test','Alumno',$3,'000000000','Test','Confirmado',$4,NOW())`, [`p${i}`, `p${i}@example.invalid`, i < 2 ? "Staff" : "Alumno", `token${i}`]);
+  await db.query("UPDATE participants SET staff_function='Registro de asistencia' WHERE role='Staff'");
   for (const i of [0, 1]) await db.query("INSERT INTO attendance_operators(email,updated_by) VALUES($1,'test')", [`p${i}@example.invalid`]);
   for (const [id, start, end, venue] of [["a", "09:00", "10:00", "Azul"], ["c", "10:00", "11:00", "Azul"], ["blue", "09:00", "11:00", "Azul"], ["purple", "09:00", "10:00", "Morada"]]) {
     await db.query("INSERT INTO attendance_sessions(id,title,type,venue,starts_at,ends_at,is_simulation,updated_by) VALUES($1,$1,'Conferencia',$2,$3,$4,true,'test')", [id, venue, at(start), at(end)]);

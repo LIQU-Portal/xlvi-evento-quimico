@@ -29,24 +29,26 @@ try {
   if (!tables.has("participants") || !tables.has("activity_enrollments")) throw new ReleaseCheckError("The existing participant/enrollment schema is missing; do not apply attendance migration here.");
   const missing = required.filter(t => !tables.has(t));
   const [routine] = await query("SELECT to_regprocedure('public.record_attendance_v2(text,text,text,text,text,text,boolean,text)') IS NOT NULL AS ready");
+  const [staffGuard] = await query("SELECT to_regprocedure('public.attendance_staff_can_register(text)') IS NOT NULL AS present");
   const [staffColumn] = await query("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='participants' AND column_name='staff_function') AS present");
   const [participants] = await query("SELECT count(*)::int AS total, count(*) FILTER (WHERE role='Staff' AND status='Confirmado')::int AS eligible_staff FROM participants");
   const report = { environment, phase, fingerprint, readOnly: true, coordinatorsConfigured: true,
     simulationsConfigured: process.env.ATTENDANCE_SIMULATION_ENABLED?.trim().toLowerCase() === "true",
-    participants, missingTables: missing, recordingFunctionPresent: routine.ready, staffFunctionColumnPresent: staffColumn.present };
+    participants, missingTables: missing, recordingFunctionPresent: routine.ready, staffFunctionColumnPresent: staffColumn.present, staffAuthorizationFunctionPresent: staffGuard.present };
   if (!missing.length) {
     const [setup] = await query(`SELECT
-      (SELECT count(*) FROM attendance_operators o JOIN participants p ON lower(p.email)=o.email WHERE o.active AND p.role='Staff' AND p.status='Confirmado')::int AS enabled_operators,
+      (SELECT count(*) FROM attendance_operators o JOIN participants p ON lower(p.email)=o.email WHERE o.active AND ${staffGuard.present ? 'attendance_staff_can_register(o.email)' : 'FALSE'})::int AS enabled_operators,
       (SELECT count(*) FROM attendance_sessions s WHERE active AND NOT is_simulation AND (s.type<>'Conferencia' OR EXISTS(SELECT 1 FROM attendance_auditorium_blocks b WHERE b.block_id=s.id)))::int AS real_sessions,
       (SELECT count(*) FROM attendance_sessions WHERE is_simulation)::int AS simulation_sessions,
       (SELECT count(*) FROM attendance_sessions s WHERE active AND NOT is_simulation AND (s.type<>'Conferencia' OR EXISTS(SELECT 1 FROM attendance_auditorium_blocks b WHERE b.block_id=s.id)) AND NOT EXISTS (
         SELECT 1 FROM attendance_assignments a JOIN attendance_operators o ON o.email=a.operator_email
-        JOIN participants p ON lower(p.email)=o.email WHERE a.session_id=s.id AND o.active AND p.role='Staff' AND p.status='Confirmado'))::int AS real_sessions_without_operator`);
+        JOIN participants p ON lower(p.email)=o.email WHERE a.session_id=s.id AND o.active AND ${staffGuard.present ? 'attendance_staff_can_register(o.email)' : 'FALSE'}))::int AS real_sessions_without_operator`);
     report.setup = setup;
   }
   console.log(JSON.stringify(report, null, 2));
   if (phase === "after-migration" && (missing.length || !routine.ready)) throw new ReleaseCheckError("Attendance schema is incomplete. Apply the reviewed migration explicitly before release.");
   if (phase === "after-migration" && !staffColumn.present) throw new ReleaseCheckError("staff_function is missing. Apply its separate reviewed migration before publishing this version.");
+  if (phase === "after-migration" && !staffGuard.present) throw new ReleaseCheckError("Staff authorization function is missing. Apply the updated attendance migration explicitly before publishing this version.");
   if (environment === "production" && report.setup?.simulation_sessions > 0) throw new ReleaseCheckError("Simulation rows found in production. Investigate; this checker never deletes data.");
   console.log("Read-only technical preflight OK. This does not approve manual tests, backup, deployment or operator assignments.");
 } catch (error) {

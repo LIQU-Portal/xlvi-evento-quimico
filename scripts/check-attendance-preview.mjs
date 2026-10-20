@@ -30,6 +30,8 @@ if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_GIT_COMMIT_REF ==
     if (!staffColumn.present) throw new PreviewCheckError("Falta staff_function en pruebas. Aplica explícitamente su migración antes de publicar esta versión; el build no migra.");
     const [routine] = await sql.query("SELECT to_regprocedure($1) IS NOT NULL AS present", ["public.record_attendance_v2(text,text,text,text,text,text,boolean,text)"]);
     if (!routine?.present) throw new PreviewCheckError("Conexión de pruebas OK, pero falta la función de lectura de asistencia.");
+    const [staffGuard] = await sql.query("SELECT to_regprocedure('public.attendance_staff_can_register(text)') IS NOT NULL AS present");
+    if (!staffGuard?.present) throw new PreviewCheckError("Falta la autorización de staffFunction. Aplica la migración de asistencia actualizada explícitamente en pruebas.");
     console.log("ASISTENCIA PREVIEW: conexión OK; destino de pruebas confirmado; tablas y función listas. Verificación de solo lectura.");
   } catch (error) {
     // Do not print database-driver errors, URLs, tokens, or connection details.
