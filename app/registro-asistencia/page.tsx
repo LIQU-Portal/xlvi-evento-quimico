@@ -18,7 +18,7 @@ export default async function AttendancePage() {
       <Link href="/mi-cuenta">Mi cuenta</Link></header>
     <p className="attendance-eyebrow">Staff de registro</p>
     {access.admin && <Link className="attendance-admin-link" href="/administracion/asistencia">Coordinar sesiones →</Link>}
-    {access.operator ? <AttendanceScanner sessions={await listAttendanceSessions(session.user.email)} />
+    {access.operator ? <AttendanceScanner sessions={await listAttendanceSessions(session.user.email, true)} initialNow={new Date().toISOString()} />
       : <p>Tu acceso es de coordinación. Abre “Coordinar sesiones” para asignar al staff de registro.</p>}
   </div></main>;
 }

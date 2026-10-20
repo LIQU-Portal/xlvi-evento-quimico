@@ -3,7 +3,7 @@
 import { ArrowUp, LogOut, Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { signOutToHome } from "@/app/auth-actions";
 import { GoogleLoginButton } from "@/components/google-login-button";
@@ -44,6 +44,20 @@ export function SiteHeader({ user }: SiteHeaderProps) {
   const [compact, setCompact] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [activeHref, setActiveHref] = useState<string | null>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const navigation = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    navigation.current?.querySelector<HTMLAnchorElement>("a")?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      menuButton.current?.focus();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
 
   useEffect(() => {
     const updateNavigation = () => {
@@ -87,18 +101,9 @@ export function SiteHeader({ user }: SiteHeaderProps) {
         <div className="container header-inner">
           <Link href="/#inicio" className="brand" aria-label="Ir al inicio" onClick={() => setActiveHref(null)}>
             <Image src="/branding/isotipo.svg" alt="" width={42} height={42} priority />
-            <span><b>XLVI</b> Evento del Químico</span>
+            <span><b>XLVI</b><span className="brand-event-name"> Evento del Químico</span></span>
           </Link>
-          <button
-            className="menu-button"
-            aria-expanded={open}
-            aria-controls="main-menu"
-            aria-label={open ? "Cerrar menú" : "Abrir menú"}
-            onClick={() => setOpen((current) => !current)}
-          >
-            {open ? <X /> : <Menu />}
-          </button>
-          <nav id="main-menu" className={open ? "nav-links open" : "nav-links"} aria-label="Navegación principal">
+          <nav ref={navigation} id="main-menu" className={open ? "nav-links open" : "nav-links"} aria-label="Navegación principal">
             {links.map(([label, href]) => (
               <Link
                 key={href}
@@ -113,24 +118,33 @@ export function SiteHeader({ user }: SiteHeaderProps) {
                 {label}
               </Link>
             ))}
+            {user && <form className="mobile-menu-sign-out" action={signOutToHome}>
+              <button className="menu-sign-out" type="submit"><LogOut size={18} aria-hidden="true" />Cerrar sesión</button>
+            </form>}
+          </nav>
+          <div className="header-controls">
             {user ? (
-              <div className="account-session-actions">
+              <div className="account-session-actions header-account">
                 <Link className="account-link account-link-user" href="/mi-cuenta" onClick={() => setOpen(false)}>
                   <ProfileAvatar name={user.name} image={user.image} />
                   <span>Mi cuenta</span>
                 </Link>
-                <form action={signOutToHome}>
+                <form className="desktop-sign-out" action={signOutToHome}>
                   <button className="header-sign-out" type="submit" aria-label="Cerrar sesión" title="Cerrar sesión">
                     <LogOut size={17} />
                   </button>
                 </form>
               </div>
             ) : (
-              <div className="header-login-form" onClick={() => setOpen(false)}>
+              <div className="header-login-form header-account" onClick={() => setOpen(false)}>
                 <GoogleLoginButton />
               </div>
             )}
-          </nav>
+            <button ref={menuButton} className="menu-button" aria-expanded={open} aria-controls="main-menu"
+              aria-label={open ? "Cerrar menú" : "Abrir menú"} onClick={() => setOpen(current => !current)}>
+              {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+            </button>
+          </div>
         </div>
       </header>
       <button

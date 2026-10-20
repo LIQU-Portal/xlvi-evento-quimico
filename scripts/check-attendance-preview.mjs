@@ -20,7 +20,7 @@ if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_GIT_COMMIT_REF ==
     }
     const sql = neon(connection);
     const required = ["participants", "attendance_operators", "attendance_sessions", "attendance_assignments",
-      "attendance_simulation_roster", "attendance_events", "attendance_audit", "attendance_auditorium_blocks", "attendance_auditorium_members", "attendance_visits", "attendance_scan_requests"];
+      "attendance_simulation_roster", "attendance_events", "attendance_audit", "attendance_auditorium_blocks", "attendance_auditorium_members", "attendance_visits", "attendance_scan_requests", "attendance_support_visits", "attendance_support_requests"];
     const rows = await sql.query("SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_name = ANY($2::text[])", ["public", required]);
     const tables = new Set(rows.map((row) => row.table_name));
     if (required.some((name) => !tables.has(name))) {
@@ -28,7 +28,7 @@ if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_GIT_COMMIT_REF ==
     }
     const [staffColumn] = await sql.query("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='participants' AND column_name='staff_function') AS present");
     if (!staffColumn.present) throw new PreviewCheckError("Falta staff_function en pruebas. Aplica explícitamente su migración antes de publicar esta versión; el build no migra.");
-    const [routine] = await sql.query("SELECT to_regprocedure($1) IS NOT NULL AS present", ["public.record_attendance_v2(text,text,text,text,text,text,boolean,text)"]);
+    const [routine] = await sql.query("SELECT to_regprocedure($1) IS NOT NULL AS present", ["public.record_attendance_v3(text,text,text,text,text,text,boolean,text)"]);
     if (!routine?.present) throw new PreviewCheckError("Conexión de pruebas OK, pero falta la función de lectura de asistencia.");
     const [staffGuard] = await sql.query("SELECT to_regprocedure('public.attendance_staff_can_register(text)') IS NOT NULL AS present");
     if (!staffGuard?.present) throw new PreviewCheckError("Falta la autorización de staffFunction. Aplica la migración de asistencia actualizada explícitamente en pruebas.");

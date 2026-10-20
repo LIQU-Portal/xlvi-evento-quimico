@@ -5,6 +5,7 @@ import { attendanceOperatorListQuery, type AttendanceOperatorOption } from "@/li
 import { getProgramFromSheets } from "@/lib/sheets";
 import { buildAuditoriumBlocks } from "./attendance-auditorium";
 import { conferenceReportQuery, visitReportQuery } from "./attendance-conference-report";
+import { supportReportQuery, supportVisitsQuery } from "./attendance-support";
 import { withAttendanceRetry } from "./attendance-retry";
 import { localEventTime } from "./program-agenda";
 import { attendanceMessages, inspectAttendanceSchedule, isAuthorizedCoordinator, areSimulationsEnabled, validScanReference,
@@ -38,25 +39,28 @@ function sessionFromRow(row: Record<string, unknown>): AttendanceSession {
     startsAt: new Date(String(row.starts_at)).toISOString(), endsAt: new Date(String(row.ends_at)).toISOString(),
     isSimulation: Boolean(row.is_simulation), active: Boolean(row.active),
     isAuditorium: Boolean(row.is_auditorium),
+    isSupport: row.internal_kind === "support",
     entries: Number(row.entries ?? 0), exits: Number(row.exits ?? 0),
     operators: (row.operators ?? []) as string[],
   };
 }
 
-export async function listAttendanceSessions(operatorEmail?: string) {
+export async function listAttendanceSessions(operatorEmail?: string, includeOtherDays = false) {
   const sql = getSql();
   const rows = await sql.query(`SELECT s.*, EXISTS(SELECT 1 FROM attendance_auditorium_blocks b WHERE b.block_id=s.id) AS is_auditorium,
       (SELECT count(*) FROM attendance_events e WHERE e.session_id = s.id AND e.direction = 'entry') +
-        (SELECT count(*) FROM attendance_visits v WHERE v.block_id=s.id) AS entries,
+        (SELECT count(*) FROM attendance_visits v WHERE v.block_id=s.id) +
+        (SELECT count(*) FROM attendance_support_visits v WHERE v.session_id=s.id) AS entries,
       (SELECT count(*) FROM attendance_events e WHERE e.session_id = s.id AND e.direction = 'exit') +
-        (SELECT count(*) FROM attendance_visits v WHERE v.block_id=s.id AND v.exited_at IS NOT NULL) AS exits,
+        (SELECT count(*) FROM attendance_visits v WHERE v.block_id=s.id AND v.exited_at IS NOT NULL) +
+        (SELECT count(*) FROM attendance_support_visits v WHERE v.session_id=s.id AND v.exited_at IS NOT NULL) AS exits,
       ARRAY(SELECT a.operator_email FROM attendance_assignments a WHERE a.session_id = s.id ORDER BY a.operator_email) AS operators
     FROM attendance_sessions s WHERE (NOT s.is_simulation OR $2::boolean)
       AND (s.type<>'Conferencia' OR EXISTS(SELECT 1 FROM attendance_auditorium_blocks b WHERE b.block_id=s.id))
       AND ($1::text IS NULL OR (s.active
-        AND (s.starts_at AT TIME ZONE 'America/Mexico_City')::date = (NOW() AT TIME ZONE 'America/Mexico_City')::date AND EXISTS (
+        AND ($3::boolean OR (s.starts_at AT TIME ZONE 'America/Mexico_City')::date = (NOW() AT TIME ZONE 'America/Mexico_City')::date) AND EXISTS (
         SELECT 1 FROM attendance_assignments a WHERE a.session_id = s.id AND a.operator_email = lower($1))))
-    ORDER BY s.starts_at, s.title`, [operatorEmail ?? null, simulationEnabled()]);
+    ORDER BY s.starts_at, s.title`, [operatorEmail ?? null, simulationEnabled(), includeOtherDays]);
   return rows.map((r) => sessionFromRow(r as Record<string, unknown>));
 }
 
@@ -77,7 +81,7 @@ export async function scanAttendance(input: {
   if (!validScanReference(input.reference, input.source) || !["entry", "exit"].includes(input.direction)) {
     return { outcome: "invalid_request", message: attendanceMessages.invalid_request };
   }
-  const rows = await withAttendanceRetry(() => getSql().query("SELECT * FROM record_attendance_v2($1,$2,$3,$4,$5,$6,$7,$8)", [
+  const rows = await withAttendanceRetry(() => getSql().query("SELECT * FROM record_attendance_v3($1,$2,$3,$4,$5,$6,$7,$8)", [
     input.sessionId, input.operatorEmail, input.reference, input.direction, input.source, input.reason, simulationEnabled(), input.requestId ?? "",
   ]));
   const row = rows[0];
@@ -110,7 +114,7 @@ export async function saveAttendanceSessions(sessions: AttendanceSession[], acto
     sql.query(`DELETE FROM attendance_auditorium_members m USING attendance_sessions b
       WHERE b.id=m.block_id AND b.is_simulation=$1 AND ($2::text IS NULL OR to_char(b.starts_at AT TIME ZONE 'America/Mexico_City','YYYY-MM-DD')=$2)
       AND NOT EXISTS(SELECT 1 FROM attendance_visits v WHERE v.block_id=m.block_id)`, [simulation, simulationDate]),
-    ...(!simulation ? [sql.query("UPDATE attendance_sessions SET active = FALSE, updated_at = NOW(), updated_by = $1 WHERE NOT is_simulation", [actor])] : []),
+    ...(!simulation ? [sql.query("UPDATE attendance_sessions SET active = FALSE, updated_at = NOW(), updated_by = $1 WHERE NOT is_simulation AND internal_kind IS NULL", [actor])] : []),
     ...all.map((s) => sql.query(`INSERT INTO attendance_sessions
       (id, activity_id, title, type, venue, starts_at, ends_at, updated_by, is_simulation)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO UPDATE SET
@@ -146,10 +150,14 @@ export async function attendanceReport(sessionId?: string): Promise<Record<strin
     JOIN participants p ON p.id = e.participant_id
     WHERE ($1::text IS NULL OR s.id = $1) AND (NOT s.is_simulation OR $2::boolean)
     GROUP BY s.id, p.id ORDER BY s.starts_at, p.name`, [sessionId ?? null, simulationEnabled()]);
-  const [legacy, conference] = await Promise.all([legacyPromise, getSql().query(conferenceReportQuery, [sessionId ?? null, simulationEnabled()])]);
-  return [...legacy.map(r => ({ ...r, evidence_type: "legacy_or_single_entry" })), ...conference];
+  const [legacy, conference, support] = await Promise.all([legacyPromise,
+    getSql().query(conferenceReportQuery, [sessionId ?? null, simulationEnabled()]),
+    getSql().query(supportReportQuery, [sessionId ?? null, simulationEnabled()])]);
+  return [...legacy.map(r => ({ ...r, evidence_type: "legacy_or_single_entry" })), ...conference, ...support];
 }
 
 export async function attendanceVisits(sessionId?: string) {
-  return getSql().query(visitReportQuery, [sessionId ?? null, simulationEnabled()]);
+  const params = [sessionId ?? null, simulationEnabled()];
+  const [auditorium, support] = await Promise.all([getSql().query(visitReportQuery, params), getSql().query(supportVisitsQuery, params)]);
+  return [...auditorium, ...support];
 }

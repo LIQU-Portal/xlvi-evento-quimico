@@ -9,7 +9,7 @@ const environment = argument("environment");
 const phase = argument("phase");
 const expected = argument("expected-fingerprint");
 const allowedCoordinators = ["cdquim@cucei.udg.mx", "jorge.lopezarce@academicos.udg.mx"];
-const required = ["attendance_operators", "attendance_sessions", "attendance_assignments", "attendance_simulation_roster", "attendance_events", "attendance_audit", "attendance_auditorium_blocks", "attendance_auditorium_members", "attendance_visits", "attendance_scan_requests"];
+const required = ["attendance_operators", "attendance_sessions", "attendance_assignments", "attendance_simulation_roster", "attendance_events", "attendance_audit", "attendance_auditorium_blocks", "attendance_auditorium_members", "attendance_visits", "attendance_scan_requests", "attendance_support_visits", "attendance_support_requests"];
 
 try {
   if (!["preview", "production"].includes(environment) || !["before-migration", "after-migration"].includes(phase)
@@ -28,7 +28,7 @@ try {
   const tables = new Set((await query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")).map(r => r.table_name));
   if (!tables.has("participants") || !tables.has("activity_enrollments")) throw new ReleaseCheckError("The existing participant/enrollment schema is missing; do not apply attendance migration here.");
   const missing = required.filter(t => !tables.has(t));
-  const [routine] = await query("SELECT to_regprocedure('public.record_attendance_v2(text,text,text,text,text,text,boolean,text)') IS NOT NULL AS ready");
+  const [routine] = await query("SELECT to_regprocedure('public.record_attendance_v3(text,text,text,text,text,text,boolean,text)') IS NOT NULL AS ready");
   const [staffGuard] = await query("SELECT to_regprocedure('public.attendance_staff_can_register(text)') IS NOT NULL AS present");
   const [staffColumn] = await query("SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='participants' AND column_name='staff_function') AS present");
   const [participants] = await query("SELECT count(*)::int AS total, count(*) FILTER (WHERE role='Staff' AND status='Confirmado')::int AS eligible_staff FROM participants");

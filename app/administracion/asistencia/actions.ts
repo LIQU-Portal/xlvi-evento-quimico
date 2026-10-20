@@ -6,6 +6,7 @@ import { getSql } from "@/lib/db";
 import { isAttendanceAdmin, simulationEnabled, syncAttendanceSessions, saveAttendanceSessions } from "@/lib/attendance";
 import { buildSimulationSessions } from "@/lib/attendance-simulations";
 import { syncAttendanceStaff } from "@/lib/attendance-staff-sync";
+import { buildSupportDay } from "@/lib/attendance-support";
 
 export type AttendanceAdminState = { message: string; ok: boolean };
 
@@ -17,7 +18,12 @@ export async function manageAttendance(_previous: AttendanceAdminState, form: Fo
   const sql = getSql();
   try {
     let message = "Cambios guardados.";
-    if (operation === "operator") {
+    if (operation === "support-day") {
+      const date = String(form.get("date") ?? "");
+      const day = buildSupportDay({ date, venue: String(form.get("venue") ?? "") });
+      await sql.query("SELECT attendance_prepare_support_day($1,$2,$3)", [date, day.venue, actor]);
+      message = "Registro diario de apoyo preparado. Asígnale operadores en el paso 3. No se crearon inscripciones ni permisos nuevos.";
+    } else if (operation === "operator") {
       const email = String(form.get("email") ?? "").trim().toLowerCase();
       const active = form.get("active") === "true";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) throw new Error("Escribe un correo válido.");

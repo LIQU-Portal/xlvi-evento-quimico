@@ -12,6 +12,7 @@ export type AttendanceSession = {
   isSimulation: boolean;
   active: boolean;
   isAuditorium?: boolean;
+  isSupport?: boolean;
   entries?: number;
   exits?: number;
   operators?: string[];
@@ -93,6 +94,8 @@ export function attendanceCsvCell(value: unknown) {
 }
 
 export const attendanceMessages: Record<string, string> = {
+  not_support_staff: "Esta cuenta no está reconocida como staff activo de Apoyo operativo. Contacta a Coordinación.",
+  open_support_elsewhere: "Tiene otra entrada de apoyo sin salida. Contacta a Coordinación antes de continuar.",
   open_visit_elsewhere: "Tiene una entrada sin salida en otro auditorio. Registra primero su salida allí.",
   recorded: "Registro guardado",
   duplicate: "Ya estaba registrado",
@@ -105,6 +108,6 @@ export const attendanceMessages: Record<string, string> = {
   invalid_qr: "QR no reconocido. Usa el QR personal de Mi cuenta.",
   participant_cancelled: "El registro del participante está cancelado.",
   not_enrolled: "No tiene inscripción activa en esta actividad.",
-  entry_required: "Primero debe registrarse la entrada a esta conferencia.",
+  entry_required: "Primero debe registrarse la entrada a esta sesión.",
   invalid_request: "Revisa los datos e inténtalo de nuevo.",
 };

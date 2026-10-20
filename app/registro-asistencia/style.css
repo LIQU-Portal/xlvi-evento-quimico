@@ -11,6 +11,36 @@
 .attendance-session-choice strong { font-size: 1.12rem; overflow-wrap: anywhere; }
 .attendance-session-choice span { font-size: .9rem; }
 .attendance-session-choice em { color: #5623ae; font-style: normal; font-weight: 800; }
+.attendance-today { color: #5623ae; font-weight: 800; font-size: .9rem; }
+.attendance-picker-filters { padding: 16px; background: #fff; border: 1px solid #d9e0f0; border-radius: 16px; margin: 12px 0; }
+.attendance-picker-filters > label { display: flex; align-items: center; gap: 8px; font-weight: 750; margin-bottom: 10px; }
+.attendance-picker-filters > p { font-size: .8rem; margin: 10px 0 0; }
+.attendance-picker-date-time { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-bottom: 16px; }
+.attendance-picker-date-time label { display: grid; gap: 8px; font-weight: 750; min-width: 0; }
+.attendance-picker-date-time select { min-width: 0; }
+.attendance-time-group { --slot-bg: #edf0f6; --slot-accent: #64748b; padding: 16px; background: var(--slot-bg); border-radius: 18px; border: 1px solid var(--slot-accent); margin: 18px 0; }
+.attendance-time-group[data-slot-tone=violet] { --slot-bg: #f0e7ff; --slot-accent: #6c2bd9; }
+.attendance-time-group[data-slot-tone=teal] { --slot-bg: #def5f3; --slot-accent: #087e7d; }
+.attendance-time-group[data-slot-tone=pink] { --slot-bg: #fce6f3; --slot-accent: #b62075; }
+.attendance-time-group[data-slot-tone=blue] { --slot-bg: #e4edff; --slot-accent: #2457b2; }
+.attendance-time-group[data-slot-tone=indigo] { --slot-bg: #e9e8fc; --slot-accent: #4c40a0; }
+.attendance-time-group[data-slot-tone=mint] { --slot-bg: #e1f5eb; --slot-accent: #177855; }
+.attendance-time-group[data-slot-tone=lavender] { --slot-bg: #f2eafb; --slot-accent: #8050b0; }
+.attendance-time-group[data-slot-tone=rose] { --slot-bg: #fde8ee; --slot-accent: #ae365d; }
+.attendance-time-group-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.attendance-time-group-heading :is(h2,h4) { font-size: 1.3rem; margin: 0; }
+.attendance-time-group-heading > span { font-size: .85rem; }
+.attendance-time-group .attendance-session-choice { border-left-color: var(--slot-accent); margin: 12px 0 0; }
+.attendance-time-group .attendance-admin-list { margin-top: 12px; }
+.attendance-time-group .attendance-admin-card { background: #fff; }
+.attendance-coordination-day > h3 { margin: 26px 0 8px; font-size: 1.25rem; }
+.attendance-picker-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.attendance-picker-summary > p { font-size: .9rem; margin: 6px 0; }
+.attendance-picker-summary .attendance-back { padding: 8px 0; }
+.attendance-session-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.attendance-session-timing { background: #edf0f6; color: #35415d; border-radius: 20px; padding: 5px 10px; font-weight: 750; }
+.attendance-session-timing[data-timing=current] { color: #075437; background: #e0f7ed; }
+.attendance-session-timing[data-timing=upcoming] { color: #451888; background: #eaddff; }
 .attendance-back { display: inline-flex; align-items: center; gap: 5px; padding: 12px 0; color: #5623ae; background: transparent; border: 0; font-weight: 700; min-height: 44px; }
 .attendance-direction { display: flex; gap: 8px; margin-top: 20px; }
 .attendance-direction button { flex: 1; min-height: 60px; border: 2px solid #b8c2d6; border-radius: 14px; font-weight: 850; font-size: 1.2rem; background: #fff; color: #0d1b3d; }

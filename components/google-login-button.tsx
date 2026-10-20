@@ -60,7 +60,7 @@ export function GoogleLoginButton() {
   return (
     <>
       <button className="account-link" type="button" disabled={waiting} onClick={openLogin}>
-        {waiting ? "Conectando…" : "Log in"}
+        {waiting ? "Conectando…" : "Iniciar sesión"}
       </button>
       {waiting ? (
         <QuantitoLoader

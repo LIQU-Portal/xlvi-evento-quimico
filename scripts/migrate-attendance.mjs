@@ -14,7 +14,8 @@ try {
   if (fingerprint !== expected) throw new MigrationCheckError("El destino no coincide. No se realizaron consultas.");
   const sql = neon(connectionString.trim());
   const schema = await readFile(new URL("../database/attendance.sql", import.meta.url), "utf8") + "\n-- statement-breakpoint\n"
-    + await readFile(new URL("../database/attendance-auditorium.sql", import.meta.url), "utf8");
+    + await readFile(new URL("../database/attendance-auditorium.sql", import.meta.url), "utf8") + "\n-- statement-breakpoint\n"
+    + await readFile(new URL("../database/attendance-support.sql", import.meta.url), "utf8");
   const statements = schema.split("-- statement-breakpoint").map((s) => s.trim()).filter(Boolean);
   await sql.transaction(statements.map((s) => sql.query(s)));
   console.log(`Asistencia: ${statements.length} sentencias aplicadas. No se modificaron participantes ni inscripciones.`);

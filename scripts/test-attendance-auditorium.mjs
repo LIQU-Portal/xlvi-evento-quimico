@@ -30,7 +30,7 @@ assert.throws(() => buildAuditoriumBlocks([{ ...grouped[0].members[0], venue: "P
 assert.throws(() => buildAuditoriumBlocks([grouped[0].members[0], { ...grouped[0].members[0], id: "overlap" }]), /traslapadas/);
 const db = new PGlite();
 try {
-  for (const file of ["schema.sql", "attendance.sql", "attendance-auditorium.sql"]) await db.exec(await readFile(new URL(`../database/${file}`, import.meta.url), "utf8"));
+  for (const file of ["schema.sql", "attendance.sql", "attendance-auditorium.sql", "attendance-support.sql"]) await db.exec(await readFile(new URL(`../database/${file}`, import.meta.url), "utf8"));
   // Idempotent additive migration.
   await db.exec(await readFile(new URL("../database/attendance-auditorium.sql", import.meta.url), "utf8"));
   const { date } = (await db.query("SELECT to_char(NOW() AT TIME ZONE 'America/Mexico_City','YYYY-MM-DD') AS date")).rows[0];
@@ -47,7 +47,7 @@ try {
   await db.query("INSERT INTO attendance_auditorium_members VALUES('blue','a'),('blue','c')");
   const plan = [{ block_id: "blue", session_id: "a", starts_at: at("09:00"), ends_at: at("10:00") }, { block_id: "blue", session_id: "c", starts_at: at("10:00"), ends_at: at("11:00") }];
   await db.query("SELECT attendance_assert_schedule($1::jsonb,true,$2)", [JSON.stringify(plan), date]);
-  const scan = async (direction = "entry", options = {}) => (await db.query("SELECT * FROM record_attendance_v2($1,$2,$3,$4,$5,$6,true,$7)", [options.block ?? "blue", options.operator ?? "p0@example.invalid", options.source === "manual" ? "p2" : options.token ?? "token2", direction, options.source ?? "qr", options.reason ?? "", options.request ?? randomUUID()])).rows[0];
+  const scan = async (direction = "entry", options = {}) => (await db.query("SELECT * FROM record_attendance_v3($1,$2,$3,$4,$5,$6,true,$7)", [options.block ?? "blue", options.operator ?? "p0@example.invalid", options.source === "manual" ? "p2" : options.token ?? "token2", direction, options.source ?? "qr", options.reason ?? "", options.request ?? randomUUID()])).rows[0];
   assert.equal((await scan("exit")).outcome, "entry_required");
   assert.equal((await scan("entry", { request: "" })).outcome, "invalid_request");
   assert.equal((await scan("entry", { source: "manual", reason: "" })).outcome, "reason_required");

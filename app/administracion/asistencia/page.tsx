@@ -40,6 +40,15 @@ export default async function AttendanceAdminPage({ searchParams }: { searchPara
       <AttendanceOperatorList operators={operators} sessions={sessions} />
     </section>
     <section id="preparar" className="attendance-admin-section"><h2>2. Prepara las sesiones</h2>
+      <details className="attendance-program-setup"><summary>Registro diario de Apoyo operativo</summary>
+        <p>Una sola lista por día, sin horarios ni selección de turno. El operador registra Entrada al llegar y Salida al retirarse. No aparece en el programa público ni ocupa cupos.</p>
+        <p>En Staff debe tener active = Sí y staffFunction = Apoyo operativo. Actualiza Staff desde Sheets antes de usar el lector. No habilites como operador a quien solo presta apoyo.</p>
+        <AttendanceAdminForm operation="support-day" label="Preparar registro de apoyo del día">
+          <label>Fecha (Ciudad de México)<input type="date" name="date" required /></label>
+          <label>Punto de registro<input name="venue" required maxLength={160} placeholder="Ej. Mesa de registro" /></label>
+        </AttendanceAdminForm>
+        <p>Preparar otra vez la misma fecha no duplica la lista. Después asígnale operadores en el paso 3. Conservamos todas las horas exactas de entrada y salida para una separación matutino/vespertino posterior en el reporte; no hay corte automático.</p>
+      </details>
       <details className="attendance-program-setup"><summary>Importar o actualizar el programa real</summary>
         <p>Agrupa las conferencias por auditorio y día. Talleres y concursos conservan su sesión diaria. Los bloques con lecturas no admiten cambios de horarios o sede.</p>
         <AttendanceAdminForm operation="sync" label="Actualizar sesiones del programa" />
@@ -55,7 +64,7 @@ export default async function AttendanceAdminPage({ searchParams }: { searchPara
       </div>}
     </section>
     <section id="asignar" className="attendance-admin-section"><h2>3. Asigna operadores a cada sesión</h2>
-      <p>Filtra por día, abre una actividad, marca a sus operadores y guarda. El staff verá únicamente las sesiones asignadas del día actual.</p>
+      <p>Filtra por día, abre una actividad o el registro de apoyo, marca a sus operadores y guarda. Solo podrán capturar el día correspondiente; otros días quedan en consulta.</p>
       <AttendanceSessionList sessions={sessions} operators={operators} />
     </section>
     <section id="registros" className="attendance-admin-section"><h2>4. Asistentes</h2>
@@ -63,10 +72,11 @@ export default async function AttendanceAdminPage({ searchParams }: { searchPara
         <option value="">Todas</option>{sessions.map((s) => <option key={s.id} value={s.id}>{format(s.startsAt)} · {s.title}</option>)}
       </select></label><button type="submit" className="attendance-secondary">Ver registros</button></form>
       <Link href={`/administracion/asistencia/exportar${selected ? `?sesion=${encodeURIComponent(selected)}` : ""}`}>Descargar CSV</Link>
-      <p><Link href={`/administracion/asistencia/exportar?detalle=estancias${selected ? `&sesion=${encodeURIComponent(selected)}` : ""}`}>Descargar entradas y salidas de auditorio</Link></p>
+      <p><Link href={`/administracion/asistencia/exportar?detalle=estancias${selected ? `&sesion=${encodeURIComponent(selected)}` : ""}`}>Descargar entradas y salidas de auditorios y apoyo operativo</Link></p>
+      <p>Apoyo operativo: el resumen y el CSV incluyen minutos y horas reales por persona y día, sin horarios predefinidos ni mínimo de permanencia. Solo suman intervalos con salida, sin contar pausas entre estancias. La separación por turno y la asignación de horas integrales se definirán después; no se generan constancias automáticamente.</p>
       <p>{records.length} registros por actividad. En conferencias se reconocen todos los minutos reales con entrada y salida, sin porcentaje mínimo. Sin salida, esa estancia no suma. No se emiten constancias todavía.</p>
-      <div className="attendance-table-wrapper"><table><thead><tr><th>Actividad</th><th>Participante</th><th>ID</th><th>Primera entrada</th><th>Última salida</th><th>Minutos presentes / reconocidos</th><th>Entradas sin salida</th></tr></thead>
-        <tbody>{records.map((r) => <tr key={`${r.session_id}:${r.participant_id}:${r.evidence_type}`}><td>{String(r.title)}</td><td>{String(r.name)}</td><td>{String(r.participant_id)}</td><td>{format(r.entered_at)}</td><td>{format(r.exited_at)}</td><td>{r.evidence_type === "auditorium_intervals" ? `${r.attended_minutes} / ${r.credited_minutes}` : "Sin cálculo: registro individual"}</td><td>{String(r.open_intervals ?? "—")}</td></tr>)}</tbody></table></div>
+      <div className="attendance-table-wrapper"><table><thead><tr><th>Actividad</th><th>Participante</th><th>ID</th><th>Primera entrada</th><th>Última salida</th><th>Minutos presentes / reconocidos</th><th>Horas de apoyo</th><th>Entradas sin salida</th></tr></thead>
+        <tbody>{records.map((r) => <tr key={`${r.session_id}:${r.participant_id}:${r.evidence_type}`}><td>{String(r.title)}</td><td>{String(r.name)}</td><td>{String(r.participant_id)}</td><td>{format(r.entered_at)}</td><td>{format(r.exited_at)}</td><td>{["auditorium_intervals", "support_intervals"].includes(String(r.evidence_type)) ? `${r.attended_minutes} / ${r.credited_minutes}` : "Sin cálculo: registro individual"}</td><td>{r.evidence_type === "support_intervals" ? String(r.credited_hours) : "—"}</td><td>{String(r.open_intervals ?? "—")}</td></tr>)}</tbody></table></div>
     </section>
   </div></main>;
 }

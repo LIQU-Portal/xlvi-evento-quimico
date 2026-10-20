@@ -6,6 +6,7 @@ import { parseStaffDirectory, syncDirectoryParticipantsQuery, revokeDirectoryOpe
 import { attendanceOperatorListQuery, operatorCanScan } from '../lib/attendance-operator-list.ts';
 import ts from 'typescript';
 import { isAuthorizedCoordinator } from '../lib/attendance-rules.ts';
+import { buildSupportDay } from '../lib/attendance-support.ts';
 
 async function loadServerModule(path, dependencies, globals = {}) {
   const code=ts.transpileModule(await readFile(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
@@ -18,12 +19,13 @@ async function loadServerModule(path, dependencies, globals = {}) {
 }
 
 // Server action rejects unauthorized callers before any Google or DB work.
-let actor='participant@alumnos.udg.mx', syncCalls=0, sqlCalls=0;
+let actor='participant@alumnos.udg.mx', syncCalls=0, sqlCalls=0, supportQueries=[];
 const actions=await loadServerModule('../app/administracion/asistencia/actions.ts',{
   'next/cache':{revalidatePath:()=>{}}, '@/auth':{auth:async()=>({user:{email:actor}})},
-  '@/lib/db':{getSql:()=>{sqlCalls++;return {}; }},
+  '@/lib/db':{getSql:()=>{sqlCalls++;return {query:async(text,params)=>{supportQueries.push({text,params});return [];}}; }},
   '@/lib/attendance':{isAttendanceAdmin:email=>isAuthorizedCoordinator(email,'cdquim@cucei.udg.mx,jorge.lopezarce@academicos.udg.mx')},
   '@/lib/attendance-simulations':{},
+  '@/lib/attendance-support':{buildSupportDay},
   '@/lib/attendance-staff-sync':{syncAttendanceStaff:async()=>{syncCalls++;return{total:9,updated:8,pending:1,revoked:0};}},
 });
 const form=new FormData(); form.set('operation','staff-sync');
@@ -33,6 +35,20 @@ for (const email of ['cdquim@cucei.udg.mx','jorge.lopezarce@academicos.udg.mx'])
   actor=email; assert.equal((await actions.manageAttendance({},form)).ok,true);
 }
 assert.equal(syncCalls,2);
+const supportForm=new FormData();
+for(const [key,value] of Object.entries({operation:'support-day',date:'2026-10-20',venue:'Mesa QA'})) supportForm.set(key,value);
+actor='participant@alumnos.udg.mx';
+assert.equal((await actions.manageAttendance({},supportForm)).ok,false);
+assert.equal(supportQueries.length,0);
+actor='jorge.lopezarce@academicos.udg.mx';
+assert.equal((await actions.manageAttendance({},supportForm)).ok,true);
+assert.equal(supportQueries.length,1);
+assert.match(supportQueries[0].text,/attendance_prepare_support_day/);
+assert.equal(supportQueries[0].params[0],'2026-10-20');
+assert.equal(supportQueries[0].params[2],actor);
+supportForm.set('date','2026-02-30');
+assert.equal((await actions.manageAttendance({},supportForm)).ok,false);
+assert.equal(supportQueries.length,1,'Invalid shift must not call SQL');
 
 let networkCalls=0, transactions=0, failNetwork=false, malformed=false;
 const sample={email:'a@alumnos.udg.mx',name:'A',active:true,id:'EQ26-0000000001',status:'Confirmado',role:'Staff',staffType:'Alumno',staffFunction:'Registro de asistencia'};

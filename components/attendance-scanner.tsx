@@ -1,9 +1,10 @@
 "use client";
 
-import { Camera, CameraOff, CheckCircle2, ChevronLeft, Keyboard, TriangleAlert, XCircle } from "lucide-react";
+import { Camera, CameraOff, CheckCircle2, ChevronLeft, Keyboard, Search, TriangleAlert, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { IScannerControls } from "@zxing/browser";
+import { assignedSessionDays, assignedSessionsForDay, filterSessionChoices, groupSessionChoices, sessionStartTime, sessionTiming } from "@/lib/attendance-session-picker";
 import { localEventTime } from "@/lib/program-agenda";
 import { sessionWindow, type AttendanceDirection, type AttendanceResult, type AttendanceSession } from "@/lib/attendance-rules";
 import { acceptCameraRead, attendanceFeedback, attendanceReadDelta, CAMERA_CONFIRMATION_MS, newCameraReadGate } from "@/lib/attendance-feedback";
@@ -15,7 +16,10 @@ const timeLabel = (value: string) => new Intl.DateTimeFormat("es-MX", {
   timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
 }).format(new Date(value));
 
-export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] }) {
+export function AttendanceScanner({ sessions, initialNow }: { sessions: AttendanceSession[]; initialNow?: string }) {
+  const [sessionSearch, setSessionSearch] = useState("");
+  const [sessionDay, setSessionDay] = useState<string | null>(null);
+  const [sessionHour, setSessionHour] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [direction, setDirection] = useState<AttendanceDirection>("entry");
   const [result, setResult] = useState<AttendanceResult | null>(null);
@@ -25,7 +29,7 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
   const [reference, setReference] = useState("");
   const [manual, setManual] = useState(false);
   const [reason, setReason] = useState("");
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState(() => new Date(initialNow ?? Date.now()));
   const [cameraFeedback, setCameraFeedback] = useState(false);
   const [recent, setRecent] = useState<Array<{ key: number; sessionId: string; direction: AttendanceDirection; name: string; id: string; at: string }>>([]);
   const cameraReadGate = useRef(newCameraReadGate());
@@ -168,19 +172,55 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
 
   if (!selected) {
     const today = localEventTime(now).date;
-    const todays = sessions.filter((s) => localEventTime(new Date(s.startsAt)).date === today);
+    const day = sessionDay ?? today;
+    const days = [...new Set([today, ...assignedSessionDays(sessions)])].sort();
+    const daily = assignedSessionsForDay(sessions, day);
+    const hours = [...new Set(daily.filter(s => !s.isSupport).map(sessionStartTime))].sort();
+    const visible = filterSessionChoices(daily, sessionSearch, sessionHour);
+    const groups = groupSessionChoices(visible);
+    const filtered = sessionSearch.trim().length > 0 || sessionHour !== "" || day !== today;
     return <section className="attendance-picker">
+      <p className="attendance-today">Mis sesiones asignadas</p>
       <h1>¿Dónde vas a registrar?</h1>
-      <p>Elige tu auditorio o actividad asignada.</p>
+      <p>Elige el día y localiza tu actividad por hora.</p>
       <button className="attendance-back" onClick={() => window.location.reload()}>Actualizar sesiones</button>
-      {!todays.length && <div className="attendance-empty">No tienes sesiones asignadas para hoy. Contacta a tu coordinador.</div>}
-      {todays.map((s) => <button className="attendance-session-choice" key={s.id}
-        onClick={() => { setSelectedId(s.id); setDirection("entry"); setResult(null); setReference(""); setManual(false); }}>
-        <span>{s.isSimulation ? "SIMULACIÓN · " : ""}{s.type} · {dateLabel(s.startsAt)}</span>
-        <strong>{s.title}</strong>
-        <span>{timeLabel(s.startsAt)}–{timeLabel(s.endsAt)} · {s.venue}</span>
-        <em>{sessionWindow(s, now) ? "Abrir lector →" : "Ver sesión →"}</em>
-      </button>)}
+      <div className="attendance-picker-filters">
+        <div className="attendance-picker-date-time">
+          <label htmlFor="attendance-session-day">Día
+            <select id="attendance-session-day" aria-label="Día" value={day} onChange={event => { setSessionDay(event.target.value); setSessionHour(""); }}>
+              {days.map(d => <option key={d} value={d}>{d === today ? "Hoy · " : ""}{new Intl.DateTimeFormat("es-MX", {timeZone: "America/Mexico_City", day: "numeric", month: "short"}).format(new Date(d + "T12:00:00-06:00"))}</option>)}
+            </select>
+          </label>
+          <label htmlFor="attendance-session-hour">Hora de inicio
+            <select id="attendance-session-hour" aria-label="Hora de inicio" value={sessionHour} onChange={event => setSessionHour(event.target.value)}>
+              <option value="">Todas</option>{hours.map(h => <option key={h} value={h}>{h} h</option>)}
+            </select>
+          </label>
+        </div>
+        <label htmlFor="attendance-session-search"><Search size={18} aria-hidden="true" /> Buscar actividad o sede</label>
+        <input id="attendance-session-search" type="search" value={sessionSearch} maxLength={120}
+          onChange={event => setSessionSearch(event.target.value)} placeholder="Ej. Nomenclatura o auditorio" autoComplete="off" />
+        <p className="attendance-muted">Horarios de Ciudad de México.</p>
+      </div>
+      <div className="attendance-picker-summary">
+        <p role="status" aria-live="polite">{visible.length} de {daily.length} sesiones · {dateLabel(day + "T12:00:00-06:00")}</p>
+        {filtered && <button className="attendance-back" onClick={() => { setSessionSearch(""); setSessionHour(""); setSessionDay(null); }}>Limpiar filtros</button>}
+      </div>
+      {day !== today && <p className="attendance-notice" role="status">Solo consulta: el lector se habilita únicamente el día de la sesión.</p>}
+      {!daily.length
+        ? <div className="attendance-empty">No tienes sesiones asignadas para este día. Elige otra fecha o contacta a tu coordinador.</div>
+        : !visible.length && <div className="attendance-empty">No hay coincidencias. Prueba otra búsqueda o limpia los filtros.</div>}
+      {groups.map(group => <section key={group.key} className="attendance-time-group" data-slot-tone={group.tone} aria-label={group.label}>
+        <div className="attendance-time-group-heading"><h2>{group.label}</h2><span>{group.sessions.length} {group.sessions.length === 1 ? "sesión" : "sesiones"}</span></div>
+        {group.sessions.map(s => <button className="attendance-session-choice" key={s.id}
+          onClick={() => { setSelectedId(s.id); setDirection("entry"); setResult(null); setReference(""); setManual(false); }}>
+          <span className="attendance-session-heading"><span>{s.isSimulation ? "SIMULACIÓN · " : ""}{s.isSupport ? "Apoyo operativo" : s.type}</span>
+            <span className="attendance-session-timing" data-timing={sessionTiming(s, now)}>{sessionTiming(s, now) === "current" ? "En curso" : sessionTiming(s, now) === "upcoming" ? "Próxima" : "Finalizada"}</span></span>
+          <strong>{s.title}</strong>
+          <span>{s.isSupport ? "Todo el día" : `${timeLabel(s.startsAt)}–${timeLabel(s.endsAt)}`} · {s.venue}</span>
+          <em>{sessionWindow(s, now) ? "Abrir lector →" : "Ver sesión →"}</em>
+        </button>)}
+      </section>)}
     </section>;
   }
 
@@ -196,10 +236,11 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
     {selected.isSimulation && <div className="attendance-simulation">SIMULACIÓN · No cuenta como asistencia real</div>}
     <h1>{selected.title}</h1>
     {selected.isAuditorium && <p className="attendance-notice">Entrada al llegar y salida al retirarse. No escanear entre conferencias. Sin salida no se reconocen minutos de esa estancia.</p>}
-    <p>{dateLabel(selected.startsAt)} · {timeLabel(selected.startsAt)}–{timeLabel(selected.endsAt)}<br />{selected.venue}</p>
+      {selected.isSupport && <p className="attendance-notice">Apoyo operativo: Entrada al llegar y Salida al retirarse, sin elegir turno. Se suma el tiempo real de cada estancia con salida; sin salida no suma horas.</p>}
+    <p>{dateLabel(selected.startsAt)} · {selected.isSupport ? "Registro del día · sin horario predefinido" : `${timeLabel(selected.startsAt)}–${timeLabel(selected.endsAt)}`}<br />{selected.venue}</p>
     <div className="attendance-direction" aria-label="Tipo de registro">
       <button className={direction === "entry" ? "selected" : ""} disabled={busy} onClick={() => { stopCamera(); setDirection("entry"); setResult(null); }}>Entrada</button>
-      {selected.type === "Conferencia" && <button className={direction === "exit" ? "selected exit" : ""} disabled={busy}
+        {(selected.type === "Conferencia" || selected.isSupport) && <button className={direction === "exit" ? "selected exit" : ""} disabled={busy}
         onClick={() => { stopCamera(); setDirection("exit"); setResult(null); }}>Salida</button>}
     </div>
     <div className={`attendance-mode ${direction === "exit" ? "exit" : ""}`}>Registrando {direction === "entry" ? "ENTRADAS" : "SALIDAS"}</div>
@@ -243,7 +284,7 @@ export function AttendanceScanner({ sessions }: { sessions: AttendanceSession[] 
       <button className="attendance-secondary" disabled={!allowed || busy || !reference.trim()} type="submit">Registrar {direction === "entry" ? "entrada" : "salida"}</button>
     </form>
     <button className="attendance-back" disabled={busy} onClick={() => { setManual(!manual); setReference(""); }}>{manual ? "Volver al escáner" : "¿No se puede leer? Capturar ID"}</button>
-    <p className="attendance-count">Entradas: <strong>{counter.entries}</strong>{selected.type === "Conferencia" && <> · Salidas: <strong>{counter.exits}</strong></>}<small>Conteo de este panel. Se actualiza al volver a abrirlo.</small></p>
+      <p className="attendance-count">Entradas: <strong>{counter.entries}</strong>{(selected.type === "Conferencia" || selected.isSupport) && <> · Salidas: <strong>{counter.exits}</strong></>}<small>Conteo de este panel. Se actualiza al volver a abrirlo.</small></p>
     {!!recentForSession.length && <section className="attendance-recent" aria-label="Últimos registros guardados en este dispositivo">
       <h2>Últimos registros guardados</h2><p>En este dispositivo · sin incluir duplicados ni rechazos</p>
       <ol>{recentForSession.map((read) => <li key={read.key}><CheckCircle2 size={20} aria-hidden="true" /><div><strong>{read.name}</strong><small>{read.direction === "entry" ? "Entrada" : "Salida"} · {timeLabel(read.at)} · {read.id}</small></div></li>)}</ol>
